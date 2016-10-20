@@ -77,7 +77,9 @@ exports.addBidResponse = function (adUnitCode, bid) {
       requestTimestamp: getBidSetForBidder(bid.bidderCode).start,
       cpm: bid.cpm || 0,
       bidder: bid.bidderCode,
-      adUnitCode
+      adUnitCode,
+      alwaysUseBid: false,
+      sendStandardTargeting: true
     });
 
     bid.timeToRespond = bid.responseTimestamp - bid.requestTimestamp;
@@ -102,16 +104,8 @@ exports.addBidResponse = function (adUnitCode, bid) {
     bid.pbAg = priceStringsObj.auto;
     bid.pbDg = priceStringsObj.dense;
 
-    //if there is any key value pairs to map do here
-    var keyValues = {};
     if (bid.bidderCode && bid.cpm !== 0) {
-      keyValues = getKeyValueTargetingPairs(bid.bidderCode, bid);
-
-      if (bid.dealId) {
-        keyValues[`hb_deal_${bid.bidderCode}`] = bid.dealId;
-      }
-
-      bid.adserverTargeting = keyValues;
+      bid.adserverTargeting = getKeyValueTargetingPairs(bid.bidderCode, bid);
     }
 
     $$PREBID_GLOBAL$$._bidsReceived.push(bid);
@@ -139,16 +133,18 @@ function getKeyValueTargetingPairs(bidderCode, custBidObj) {
 
   //2) set keys from specific bidder setting override if they exist
   if (bidderCode && custBidObj && bidder_settings && bidder_settings[bidderCode] && bidder_settings[bidderCode][CONSTANTS.JSON_MAPPING.ADSERVER_TARGETING]) {
-    setKeys(keyValues, bidder_settings[bidderCode], custBidObj);
-    custBidObj.alwaysUseBid = bidder_settings[bidderCode].alwaysUseBid;
-    custBidObj.sendStandardTargeting = !!bidder_settings[bidderCode].sendStandardTargeting;
+    let bidderSettings = bidder_settings[bidderCode];
+    setKeys(keyValues, bidderSettings, custBidObj);
+    custBidObj.alwaysUseBid = bidderSettings.alwaysUseBid;
+    custBidObj.sendStandardTargeting = bidderSettings.sendStandardTargeting !== false;
   }
 
   //2) set keys from standard setting. NOTE: this API doesn't seem to be in use by any Adapter
   else if (defaultBidderSettingsMap[bidderCode]) {
-    setKeys(keyValues, defaultBidderSettingsMap[bidderCode], custBidObj);
-    custBidObj.alwaysUseBid = defaultBidderSettingsMap[bidderCode].alwaysUseBid;
-    custBidObj.sendStandardTargeting = !!defaultBidderSettingsMap[bidderCode].sendStandardTargeting;
+    let bidderSettings = defaultBidderSettingsMap[bidderCode];
+    setKeys(keyValues, bidderSettings, custBidObj);
+    custBidObj.alwaysUseBid = bidderSettings.alwaysUseBid;
+    custBidObj.sendStandardTargeting = bidderSettings.sendStandardTargeting !== false;
   }
 
   return keyValues;
@@ -357,6 +353,11 @@ function getStandardBidderSettings() {
           key: 'hb_size',
           val: function (bidResponse) {
             return bidResponse.size;
+          }
+        }, {
+          key: 'hb_deal',
+          val: function(bidResponse) {
+            return bidResponse.dealId;
           }
         }
       ]

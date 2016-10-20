@@ -184,25 +184,16 @@ function getWinningBidTargeting() {
     return {
       [winner.adUnitCode]: Object.keys(winner.adserverTargeting)
         .filter(key => winner.sendStandardTargeting || standardKeys.indexOf(key) === -1)
-        .map(key => ({ [key.substring(0, 20)]: [winner.adserverTargeting[key]] }))
+        .map(key => {
+          if(!winner.adserverTargeting[key]) {
+            return;
+          }
+          return { [key.substring(0, 20)]: [winner.adserverTargeting[key]] }
+        }).filter(key => key)
     };
   });
 
   return winners;
-}
-
-function getDealTargeting() {
-  return $$PREBID_GLOBAL$$._bidsReceived.filter(bid => bid.dealId).map(bid => {
-    const dealKey = `hb_deal_${bid.bidderCode}`;
-    return {
-      [bid.adUnitCode]: CONSTANTS.TARGETING_KEYS.map(key => {
-        return {
-          [`${key}_${bid.bidderCode}`.substring(0, 20)]: [bid.adserverTargeting[key]]
-        };
-      })
-      .concat({ [dealKey.substring(0, 20)]: [bid.adserverTargeting[dealKey]] })
-    };
-  });
 }
 
 /**
@@ -228,17 +219,20 @@ function getAlwaysUseBidTargeting() {
   }).filter(bid => bid); // removes empty elements in array;
 }
 
-function getBidLandscapeTargeting() {
+function getBidLandscapeAndDealTargeting() {
   const standardKeys = CONSTANTS.TARGETING_KEYS;
 
   return $$PREBID_GLOBAL$$._bidsReceived.map(bid => {
-    if (bid.adserverTargeting) {
+    if(bid.adserverTargeting && bid.sendStandardTargeting && (bid.dealId || $$PREBID_GLOBAL$$._sendAllBids)) {
       return {
         [bid.adUnitCode]: standardKeys.map(key => {
+          if(!bid.adserverTargeting[key]) {
+            return;
+          }
           return {
             [`${key}_${bid.bidderCode}`.substring(0, 20)]: [bid.adserverTargeting[key]]
           };
-        })
+        }).filter(key => key)
       };
     }
   }).filter(bid => bid); // removes empty elements in array
@@ -249,8 +243,7 @@ function getAllTargeting() {
   // `alwaysUseBid=true`. If sending all bids is enabled, add targeting for losing bids.
   var targeting = getWinningBidTargeting()
     .concat(getAlwaysUseBidTargeting())
-    .concat($$PREBID_GLOBAL$$._sendAllBids ? getBidLandscapeTargeting() : [])
-    .concat(getDealTargeting());
+    .concat(getBidLandscapeAndDealTargeting());
 
   //store a reference of the targeting keys
   targeting.map(adUnitCode => {
