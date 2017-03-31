@@ -116,20 +116,23 @@ describe("Rubicon Analytics API - \n", () => {
     it("should format response event", () => {
 
       let data = {
-        site_id: "1111",
-        zone_id: "2222",
+        rubiconSlotMapping: {
+          site_id: "1111",
+          zone_id: "2222"
+        },
         bidderCode: "rubicon",
         adUnitCode: "div-id",
         requestId: "a119f454-f19e-42e0-be61-7d10ef1cde92",
         timeToRespond: 489,
+        timedOut: true,
+        dealId: 100,
         cpm: 1.2,
-
         getStatusCode: () => 1,
         getSize: () => '250x300'
       };
 
       let actual   = adapter.formatResponseEvent(data);
-      let expected = 'response/rubicon/1234/localhost/250x300/desktop/pbjs-$prebid.version$/div-id/1111/2222/1/1/0/489/400-500ms/ok/1/1-1.5';
+      let expected = 'response/rubicon/1234/localhost/250x300/desktop/pbjs-$prebid.version$/div-id/1111/2222/1/1/0/489/400-500ms/ok/1/1-1.5/1';
 
       assert.equal(actual, expected);
     });

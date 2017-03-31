@@ -326,6 +326,11 @@ function RubiconAdapter() {
           return memo;
         }, {'rpfl_elemid': bidRequest.placementCode});
 
+      bid.rubiconSlotMapping = {
+        site_id: ads.site_id,
+        zone_id: ads.zone_id
+      };
+
       try {
         bidmanager.addBidResponse(bidRequest.placementCode, bid);
       } catch (err) {

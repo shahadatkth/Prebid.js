@@ -130,8 +130,8 @@ export default Object.assign({}, baseAdapter,
       let adUnitCode     = encodeURIComponent(oBidResponse.adUnitCode);
       let statusCode     = oBidResponse.getStatusCode();
       let responseStatus = this.getResponseStatus(statusCode);
-      let siteId         = oBidResponse.site_id || 0;
-      let zoneId         = oBidResponse.zone_id || 0;
+      let siteId         = (oBidResponse.rubiconSlotMapping && oBidResponse.rubiconSlotMapping.site_id) || 0;
+      let zoneId         = (oBidResponse.rubiconSlotMapping && oBidResponse.rubiconSlotMapping.zone_id) || 0;
       let fitFlag        = (statusCode === 1 ? 1 : 0);
       let latency        = oBidResponse.timeToRespond;
       let latencyTier    = this.getLatencyTier(latency);
@@ -141,22 +141,20 @@ export default Object.assign({}, baseAdapter,
       let adapterCode    = oBidResponse.bidderCode;
       let accountId      = this.getAccountId();
       let timeoutValue   = 0;
-      let timedoutFlag   = 0;
+      let timedoutFlag   = oBidResponse.timedOut ? 1 : 0;
       let sampleRate     = this._sampleRate;
       let cpm            = oBidResponse.cpm;
       let cpmRange       = this.getCpmRange(cpm);
+      let hasDeal        = oBidResponse.dealId ? 1 : 0;
 
       if (bidderRequest && bidderRequest.timeout) {
         timeoutValue = bidderRequest.timeout;
       }
 
-      if (latency > timeoutValue) {
-        timedoutFlag = 1;
-      }
-
       return this.logEntry(
         'response', adapterCode, accountId, domain, dimensions, platform, 'pbjs-$prebid.version$', adUnitCode,
-        siteId, zoneId, timedoutFlag, fitFlag, timeoutValue, latency, latencyTier, responseStatus, sampleRate, cpmRange
+        siteId, zoneId, timedoutFlag, fitFlag, timeoutValue, latency, latencyTier, responseStatus, sampleRate,
+        cpmRange, hasDeal
       );
     },
 
@@ -167,7 +165,7 @@ export default Object.assign({}, baseAdapter,
      * @param data        {object}    Event data
      */
     batchTrackEvent(eventType, args) {
-      utils.logInfo(fmt(`Add event ${eventType} to bach`));
+      utils.logInfo(fmt(`Add event ${eventType} to batch`));
 
       let entry = [eventType, args];
 
@@ -403,7 +401,7 @@ export default Object.assign({}, baseAdapter,
 
       ajax(
         url,
-        this.sendLogRequestCallback,
+        undefined,
         payload,
         options
       );
