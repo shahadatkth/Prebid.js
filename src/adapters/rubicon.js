@@ -314,9 +314,19 @@ function RubiconAdapter() {
         bid.vastUrl = ad.creative_depot_url;
         bid.descriptionUrl = ad.impression_id;
         bid.impression_id = ad.impression_id;
+
+        bid.rubiconSlotMapping = {
+          site_id: ad.site_id,
+          zone_id: ad.zone_id
+        };
       } else {
         bid.ad = _renderCreative(ad.script, ad.impression_id);
         [bid.width, bid.height] = sizeMap[ad.size_id].split('x').map(num => Number(num));
+
+        bid.rubiconSlotMapping = {
+          site_id: responseObj.site_id,
+          zone_id: responseObj.zone_id
+        };
       }
 
       // add server-side targeting
@@ -325,11 +335,6 @@ function RubiconAdapter() {
           memo[item.key] = item.values[0];
           return memo;
         }, {'rpfl_elemid': bidRequest.placementCode});
-
-      bid.rubiconSlotMapping = {
-        site_id: ads.site_id,
-        zone_id: ads.zone_id
-      };
 
       try {
         bidmanager.addBidResponse(bidRequest.placementCode, bid);

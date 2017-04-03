@@ -479,6 +479,10 @@ describe('the rubicon adapter', () => {
           expect(bids[0].width).to.equal(320);
           expect(bids[0].height).to.equal(50);
           expect(bids[0].cpm).to.equal(0.911);
+          expect(bids[0].rubiconSlotMapping).to.deep.equal({
+            site_id: 70608,
+            zone_id: 530022
+          });
           expect(bids[0].ad).to.contain(`alert('foo')`)
             .and.to.contain(`<html>`)
             .and.to.contain(`<div data-rp-impression-id='153dc240-8229-4604-b8f5-256933b9374d'>`);
@@ -490,6 +494,10 @@ describe('the rubicon adapter', () => {
           expect(bids[1].width).to.equal(300);
           expect(bids[1].height).to.equal(250);
           expect(bids[1].cpm).to.equal(0.811);
+          expect(bids[1].rubiconSlotMapping).to.deep.equal({
+            site_id: 70608,
+            zone_id: 530022
+          });
           expect(bids[1].ad).to.contain(`alert('foo')`)
             .and.to.contain(`<html>`)
             .and.to.contain(`<div data-rp-impression-id='153dc240-8229-4604-b8f5-256933b9374c'>`);
@@ -682,6 +690,10 @@ describe('the rubicon adapter', () => {
           expect(bids[0].bidderCode).to.equal('rubicon');
           expect(bids[0].creative_id).to.equal(999999);
           expect(bids[0].cpm).to.equal(1);
+          expect(bids[0].rubiconSlotMapping).to.deep.equal({
+            site_id: 88888,
+            zone_id: 54321
+          });
           expect(bids[0].descriptionUrl).to.equal('a40fe16e-d08d-46a9-869d-2e1573599e0c');
           expect(bids[0].vastUrl).to.equal(
               'https://optimized-by-adv.rubiconproject.com/v1/creative/a40fe16e-d08d-46a9-869d-2e1573599e0c.xml'
