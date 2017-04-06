@@ -137,6 +137,30 @@ describe("Rubicon Analytics API - \n", () => {
       assert.equal(actual, expected);
     });
 
+    it("should format render event", () => {
+
+      let data = {
+        rubiconSlotMapping: {
+          site_id: "1111",
+          zone_id: "2222"
+        },
+        bidderCode: "rubicon",
+        adUnitCode: "div-id",
+        requestId: "a119f454-f19e-42e0-be61-7d10ef1cde92",
+        timeToRespond: 489,
+        timedOut: true,
+        dealId: 100,
+        cpm: 1.2,
+        getStatusCode: () => 1,
+        getSize: () => '250x300'
+      };
+
+      let actual   = adapter.formatRenderEvent(data);
+      let expected = 'render/rubicon/1234/localhost/250x300/desktop/pbjs-$prebid.version$/div-id/1111/2222/1/1.2/1';
+
+      assert.equal(actual, expected);
+    });
+
   });
 
   describe("Tests Adapter batch functionality", () => {

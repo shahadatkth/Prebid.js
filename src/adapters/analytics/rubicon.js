@@ -13,6 +13,7 @@ const timeoutLength = 2000;  // FL-734 When batching requests this should be set
 
 const BID_REQUESTED  = CONSTANTS.EVENTS.BID_REQUESTED;
 const BID_RESPONSE   = CONSTANTS.EVENTS.BID_RESPONSE;
+const BID_WON        = CONSTANTS.EVENTS.BID_WON;
 const DEVICE_DESKTOP = 'desktop';
 const DEVICE_TABLET  = 'tablet';
 const DEVICE_PHONE   = 'phone';
@@ -73,7 +74,7 @@ export default Object.assign({}, baseAdapter,
      * @param trackingParams
      */
     track({eventType, args}) {
-      if (eventType !== BID_REQUESTED && eventType !== BID_RESPONSE) {
+      if (eventType !== BID_REQUESTED && eventType !== BID_RESPONSE && eventType !== BID_WON) {
         utils.logInfo(fmt('Untracked Event'), eventType);
       } else {
         this.batchTrackEvent(eventType, args);
@@ -93,6 +94,7 @@ export default Object.assign({}, baseAdapter,
       let domain      = this.getDomain();
       let accountId   = this.getAccountId();
       let adapterCode = oBidReq.bidderCode;
+      let integration = this.getIntegration();
       let requestId   = oBidReq.requestId;
       let bids        = oBidReq.bids;
       let logEntries  = [];
@@ -105,7 +107,7 @@ export default Object.assign({}, baseAdapter,
 
         logEntries.push(this.logEntry(
           'auction',
-          adapterCode, accountId, domain, dimensions, platform, 'pbjs-$prebid.version$', adUnitCode, sampleRate
+          adapterCode, accountId, domain, dimensions, platform, integration, adUnitCode, sampleRate
         ));
       }
 
@@ -136,6 +138,7 @@ export default Object.assign({}, baseAdapter,
       let latency        = oBidResponse.timeToRespond;
       let latencyTier    = this.getLatencyTier(latency);
       let platform       = this.getDevicePlatform();
+      let integration    = this.getIntegration();
       let domain         = this.getDomain();
       let dimensions     = oBidResponse.getSize();
       let adapterCode    = oBidResponse.bidderCode;
@@ -152,9 +155,29 @@ export default Object.assign({}, baseAdapter,
       }
 
       return this.logEntry(
-        'response', adapterCode, accountId, domain, dimensions, platform, 'pbjs-$prebid.version$', adUnitCode,
+        'response', adapterCode, accountId, domain, dimensions, platform, integration, adUnitCode,
         siteId, zoneId, timedoutFlag, fitFlag, timeoutValue, latency, latencyTier, responseStatus, sampleRate,
         cpmRange, hasDeal
+      );
+    },
+
+    formatRenderEvent(oBidResponse) {
+      let adapterCode    = oBidResponse.bidderCode;
+      let accountId      = this.getAccountId();
+      let domain         = this.getDomain();
+      let dimensions     = oBidResponse.getSize();
+      let platform       = this.getDevicePlatform();
+      let integration    = this.getIntegration();
+      let adUnitCode     = encodeURIComponent(oBidResponse.adUnitCode);
+      let siteId         = (oBidResponse.rubiconSlotMapping && oBidResponse.rubiconSlotMapping.site_id) || 0;
+      let zoneId         = (oBidResponse.rubiconSlotMapping && oBidResponse.rubiconSlotMapping.zone_id) || 0;
+      let sampleRate     = this._sampleRate;
+      let cpm            = oBidResponse.cpm;
+      let hasDeal        = oBidResponse.dealId ? 1 : 0;
+
+      return this.logEntry(
+        'render', adapterCode, accountId, domain, dimensions, platform, integration, adUnitCode, siteId, zoneId,
+        sampleRate, cpm, hasDeal
       );
     },
 
@@ -184,7 +207,8 @@ export default Object.assign({}, baseAdapter,
         let logEvents = [];
         let callbacks = {
           [BID_REQUESTED]: this.formatAuctionEvent,
-          [BID_RESPONSE]: this.formatResponseEvent
+          [BID_RESPONSE]: this.formatResponseEvent,
+          [BID_WON]: this.formatRenderEvent
         };
 
         this.events.forEach((event) => {
@@ -209,6 +233,15 @@ export default Object.assign({}, baseAdapter,
         this.eventTrackingCallback = false;
 
       }, timeoutLength);
+    },
+
+    /**
+     * Gets the prebid version information
+     *
+     * @returns {string}
+     */
+    getIntegration() {
+      return 'pbjs-$prebid.version$';
     },
 
     /**
