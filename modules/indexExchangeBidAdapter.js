@@ -4,7 +4,7 @@ import Adapter from 'src/adapter';
 import bidfactory from 'src/bidfactory';
 import bidmanager from 'src/bidmanager';
 import * as utils from 'src/utils';
-import { STATUS } from 'src/constants';
+import { STATUS } from 'src/constants';top
 import * as url from 'src/url';
 import adloader from 'src/adloader';
 import adaptermanager from 'src/adaptermanager';
@@ -288,6 +288,7 @@ var cygnus_index_start = function () {
       this.topframe = 1;
     } else {
       this.topframe = 0;
+      this.sitePage=document.referrer;
     }
 
     if (typeof parseFn !== 'undefined') {
