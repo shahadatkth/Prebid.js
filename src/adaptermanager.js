@@ -15,7 +15,10 @@ let s2sTestingModule; // store s2sTesting module if it's loaded
 var _bidderRegistry = {};
 exports.bidderRegistry = _bidderRegistry;
 
-let _s2sConfig = config.getConfig('s2sConfig');
+let _s2sConfig = {};
+config.getConfig('s2sConfig', config => {
+  _s2sConfig = config.s2sConfig;
+});
 
 var _analyticsRegistry = {};
 
@@ -100,6 +103,7 @@ function getAdUnitCopyForPrebidServer(adUnits) {
       delete adUnit.sizeMapping;
     }
     adUnit.sizes = transformHeightWidth(adUnit);
+    let s2sTesting = false;
     adUnit.bids = adUnit.bids.filter((bid) => {
       return adaptersServerSide.includes(bid.bidder) && (!s2sTesting || bid.finalSource !== s2sTestingModule.CLIENT);
     }).map((bid) => {
@@ -120,12 +124,6 @@ exports.makeBidRequests = function(adUnits, auctionStart, auctionId, cbTimeout, 
   let bidderCodes = getBidderCodes(adUnits);
   if (config.getConfig('bidderSequence') === RANDOM) {
     bidderCodes = shuffle(bidderCodes);
-  }
-
-  const s2sAdapter = _bidderRegistry[_s2sConfig.adapter];
-  if (s2sAdapter) {
-    s2sAdapter.setConfig(_s2sConfig);
-    s2sAdapter.queueSync({bidderCodes});
   }
 
   let clientTestAdapters = [];
@@ -186,7 +184,7 @@ exports.makeBidRequests = function(adUnits, auctionStart, auctionId, cbTimeout, 
       bidderCode,
       auctionId,
       bidderRequestId,
-      bids: getBids({bidderCode, auctionId, bidderRequestId, adUnits, labels}),
+      bids: getBids({bidderCode, auctionId, bidderRequestId, 'adUnits': adUnitsClientCopy, labels}),
       auctionStart: auctionStart,
       timeout: cbTimeout
     };
@@ -198,26 +196,43 @@ exports.makeBidRequests = function(adUnits, auctionStart, auctionId, cbTimeout, 
 };
 
 exports.callBids = (adUnits, bidRequests, addBidResponse, doneCb) => {
-  let serverBidRequests = bidRequests.filter(bidRequest => {
-    return bidRequest.src && bidRequest.src === CONSTANTS.S2S.SRC;
-  });
-
-  if (serverBidRequests.length) {
-    let adaptersServerSide = _s2sConfig.bidders;
-    const s2sAdapter = _bidderRegistry[_s2sConfig.adapter];
-    let tid = serverBidRequests[0].tid;
-
-    if (s2sAdapter) {
-      let s2sBidRequest = {tid, 'ad_units': getAdUnitCopyForPrebidServer(adUnits)};
-      utils.logMessage(`CALLING S2S HEADER BIDDERS ==== ${adaptersServerSide.join(',')}`);
-      if (s2sBidRequest.ad_units.length) {
-        s2sAdapter.callBids(s2sBidRequest);
-      }
-    }
-  }
   if (bidRequests.length) {
     let ajax = ajaxBuilder(bidRequests[0].timeout);
-    bidRequests.forEach(bidRequest => {
+
+    let [clientBidRequests, serverBidRequests] = bidRequests.reduce((partitions, bidRequest) => {
+      partitions[
+        Number(typeof bidRequest.src !== 'undefined' && bidRequest.src === CONSTANTS.S2S.SRC)
+      ].push(bidRequest);
+      return partitions;
+    }, [[], []]);
+
+    if (serverBidRequests.length) {
+      let adaptersServerSide = _s2sConfig.bidders;
+      const s2sAdapter = _bidderRegistry[_s2sConfig.adapter];
+      let tid = serverBidRequests[0].tid;
+
+      if (s2sAdapter) {
+        let s2sBidRequest = {tid, 'ad_units': getAdUnitCopyForPrebidServer(adUnits)};
+        utils.logMessage(`CALLING S2S HEADER BIDDERS ==== ${adaptersServerSide.join(',')}`);
+
+        let doneCbs = serverBidRequests.map(bidRequest => {
+          bidRequest.doneCbCallCount = 0;
+          return doneCb(bidRequest.bidderRequestId)
+        });
+
+        if (s2sBidRequest.ad_units.length) {
+          s2sAdapter.callBids(
+            s2sBidRequest,
+            serverBidRequests,
+            addBidResponse,
+            () => doneCbs.forEach(done => done()),
+            ajax
+          );
+        }
+      }
+    }
+
+    clientBidRequests.forEach(bidRequest => {
       bidRequest.start = new Date().getTime();
       // TODO : Do we check for bid in pool from here and skip calling adapter again ?
       const adapter = _bidderRegistry[bidRequest.bidderCode];
@@ -338,6 +353,10 @@ exports.enableAnalytics = function (config) {
         ${adapterConfig.provider}.`);
     }
   });
+};
+
+exports.getBidAdapter = function(bidder) {
+  return _bidderRegistry[bidder];
 };
 
 // the s2sTesting module is injected when it's loaded rather than being imported
