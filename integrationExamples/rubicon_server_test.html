@@ -1,0 +1,111 @@
+<html>
+<head>
+  <meta charset="UTF8">
+
+     <script type="text/javascript" src="/build/dev/prebid.js" async></script>
+
+
+  <script>
+
+    var adUnits = [
+		{
+			code: 'test_div_1',
+			sizes: [[300,250]],
+			bids: [
+				{
+					bidder: 'rubicon',
+					params: {accountId: 1001, siteId: 113932, zoneId: 535510}
+				}
+			]
+		}
+
+    ];
+
+    var pbjs = pbjs || {};
+    pbjs.que = pbjs.que || [];
+
+  </script>
+  <script>
+    var googletag = googletag || {};
+    googletag.cmd = googletag.cmd || [];
+    googletag.cmd.push(function() {
+        googletag.pubads().disableInitialLoad();
+    });
+
+    pbjs.que.push(function() {
+
+    pbjs.setConfig({
+        s2sConfig: {
+            accountId: '1001',
+            enabled: true,
+            bidders: ['rubicon'],
+            timeout: 5000,
+            adapter: 'prebidServer',
+            syncEndpoint: 'http://prebid-server.rubiconproject.com/cookie_sync',
+            endpoint: 'http://pbs-qa.aws.rubiconproject.com/auction?url_override=rubiconproject.com&debug=1',
+        },
+
+        "enableSendAllBids": true,
+        userSync: {
+
+
+
+    }});
+
+
+        pbjs.addAdUnits(adUnits);
+        pbjs.requestBids({
+            bidsBackHandler: sendAdserverRequest
+        });
+    });
+
+    function sendAdserverRequest() {
+        if (pbjs.adserverRequestSent) return;
+        pbjs.adserverRequestSent = true;
+        googletag.cmd.push(function() {
+            pbjs.que.push(function() {
+                pbjs.setTargetingForGPTAsync();
+                googletag.pubads().refresh();
+            });
+        });
+    }
+
+    setTimeout(function() {
+        sendAdserverRequest();
+    }, 10000);
+  </script>
+
+  <script>
+    (function () {
+        var gads = document.createElement('script');
+        gads.async = true;
+        gads.type = 'text/javascript';
+        var useSSL = 'https:' == document.location.protocol;
+        gads.src = (useSSL ? 'https:' : 'http:') +
+                '//www.googletagservices.com/tag/js/gpt.js';
+        var node = document.getElementsByTagName('script')[0];
+        node.parentNode.insertBefore(gads, node);
+    })();
+  </script>
+
+<script>
+  googletag.cmd.push(function() {
+    googletag.defineSlot('/112115922/FL_PB_MedRect', [[300,250]], 'test_div_1').addService(googletag.pubads());
+
+    googletag.pubads().enableSingleRequest();
+    googletag.enableServices();
+  });
+</script>
+</head>
+
+<body>
+    <h2>Happy_Server_Smoke_Test_01</h2>
+    <h5>Server 2 Server Config is enabled.<br>Cookie Sync should NOT show up since we eventaully get a correct call to /auction <br>/auction call SHOULD show up<br>Sync.php should also show up</h5>
+<div id='test_div_1' style="position: relative; top: 1;">
+	<script>
+		googletag.cmd.push(function() { googletag.display('test_div_1'); });
+	</script>
+</div>
+
+</body>
+</html>
