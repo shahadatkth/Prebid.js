@@ -268,6 +268,10 @@ export const addBidResponse = createHook('asyncSeries', function(adUnitCode, bid
   let bidRequest = getBidderRequest(bidRequests, bid.bidderCode, adUnitCode);
   let bidResponse = getPreparedBidForAuction({adUnitCode, bid, bidRequest, auctionId});
 
+  let name = `${bid.bidderCode}-${adUnitCode}-${bid.adId}`;
+  performance.mark(`addBidResponse-${name}`);
+  performance.measure(`bid-${name}`, `bidRequest-${name}`, `addBidResponse-${name}`);
+
   if (bidResponse.mediaType === 'video') {
     tryAddVideoBid(auctionInstance, bidResponse, bidRequest);
   } else {

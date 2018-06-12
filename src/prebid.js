@@ -311,6 +311,15 @@ $$PREBID_GLOBAL$$.removeAdUnit = function (adUnitCode) {
  * @alias module:pbjs.requestBids
  */
 $$PREBID_GLOBAL$$.requestBids = createHook('asyncSeries', function ({ bidsBackHandler, timeout, adUnits, adUnitCodes, labels } = {}) {
+  performance.mark("startAuction");
+  let oldBidsBackHandler = bidsBackHandler;
+  bidsBackHandler = function() {
+    performance.mark("endAuction");
+    performance.measure("auction", "startAuction", "endAuction");
+    oldBidsBackHandler.apply(null, arguments);
+    console.log("STOP!!!");
+  };
+
   events.emit(REQUEST_BIDS);
   const cbTimeout = timeout || config.getConfig('bidderTimeout');
   adUnits = adUnits || $$PREBID_GLOBAL$$.adUnits;
