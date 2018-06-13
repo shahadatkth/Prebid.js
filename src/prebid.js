@@ -316,7 +316,9 @@ $$PREBID_GLOBAL$$.requestBids = createHook('asyncSeries', function ({ bidsBackHa
   bidsBackHandler = function() {
     performance.mark("endAuction");
     performance.measure("auction", "startAuction", "endAuction");
-    oldBidsBackHandler.apply(null, arguments);
+    if (oldBidsBackHandler) {
+      oldBidsBackHandler.apply(null, arguments);
+    }
     console.log("STOP!!!");
   };
 
