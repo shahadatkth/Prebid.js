@@ -2012,7 +2012,7 @@
             "control" !== y && y in j && (b.log("Setting pbs config:", y),
             pbjs.setConfig({
                 s2sConfig: j[y]
-            }))a
+            }))
         }
           , x = function(e) {
             b.log("Bid received.", e, e.cpm);
