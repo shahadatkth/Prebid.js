@@ -371,7 +371,9 @@ $$PREBID_GLOBAL$$.requestBids = function ({ bidsBackHandler, timeout, adUnits, a
   bidsBackHandler = function() {
     performance.mark("endAuction");
     performance.measure("auction", "startAuction", "endAuction");
-    oldBidsBackHandler.apply(null, arguments);
+    if (oldBidsBackHandler) {
+      oldBidsBackHandler.apply(null, arguments);
+    }
     console.log("STOP PROFILER!!!");
   };
 
