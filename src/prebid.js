@@ -366,6 +366,15 @@ $$PREBID_GLOBAL$$.clearAuction = function() {
  * @alias module:pbjs.requestBids
  */
 $$PREBID_GLOBAL$$.requestBids = function ({ bidsBackHandler, timeout, adUnits, adUnitCodes } = {}) {
+  performance.mark("startAuction");
+  let oldBidsBackHandler = bidsBackHandler;
+  bidsBackHandler = function() {
+    performance.mark("endAuction");
+    performance.measure("auction", "startAuction", "endAuction");
+    oldBidsBackHandler.apply(null, arguments);
+    console.log("STOP PROFILER!!!");
+  };
+
   events.emit('requestBids');
   const cbTimeout = $$PREBID_GLOBAL$$.cbTimeout = timeout || config.getConfig('bidderTimeout');
   adUnits = adUnits || $$PREBID_GLOBAL$$.adUnits;

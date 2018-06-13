@@ -235,13 +235,29 @@ function tryAddVideoBid(bid) {
   }
 }
 
+let noBidCount = {};
+
 /*
  *   This function should be called to by the bidder adapter to register a bid response
  */
 exports.addBidResponse = createHook('asyncSeries', function (adUnitCode, bid) {
+  let name;
+  let noBid;
+  if (bid.getStatusCode() === 1) {
+    name = `${bid.bidderCode}-${adUnitCode}-${bid.adId}`;
+  } else {
+    let curr = noBidCount[`${adUnitCode}-${bid.bidderCode}`];
+    noBid = curr ? ++curr : 1;
+    noBidCount[`${adUnitCode}-${bid.bidderCode}`] = noBid;
+    name = `${bid.bidderCode}-${adUnitCode}-noBids`;
+  }
+  performance.mark(`addBidResponse-${name}`);
+  performance.measure(`bid-${name}${noBid ? `-${noBid}` : ''}`, `bidRequest-${name}`, `addBidResponse-${name}`);
+
   if (!isValidBid(bid, adUnitCode)) {
     return;
   }
+
   prepareBidForAuction(bid, adUnitCode);
 
   if (bid.mediaType === 'video') {

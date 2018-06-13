@@ -210,6 +210,16 @@ exports.callBids = ({adUnits, cbTimeout}) => {
     if (bidRequest.bids && bidRequest.bids.length !== 0) {
       utils.logMessage(`CALLING BIDDER ======= ${bidRequest.bidderCode}`);
       events.emit(CONSTANTS.EVENTS.BID_REQUESTED, bidRequest);
+
+      bidRequest.bids.forEach(bid => {
+        performance.mark(`bidRequest-${bid.bidder}-${bid.placementCode}-${bid.bidId}`);
+
+        let noBidName = `bidRequest-${bid.bidder}-${bid.placementCode}-noBids`;
+        if (!performance.getEntriesByName(noBidName).length) {
+          performance.mark(noBidName);
+        }
+      });
+
       adapter.callBids(bidRequest);
     }
   })
