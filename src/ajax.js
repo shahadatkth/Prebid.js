@@ -18,6 +18,8 @@ export function setAjaxTimeout(timeout) {
   _timeout = timeout;
 }
 
+window.pbjsTimedOutBids = [];
+
 export function ajax(url, callback, data, options = {}) {
   try {
     let x;
@@ -57,6 +59,10 @@ export function ajax(url, callback, data, options = {}) {
         callbacks.error('error', x);
       };
       x.ontimeout = function () {
+        timedOutBids.push({
+          url,
+          data
+        });
         callbacks.error('timeout', x);
       };
       x.onprogress = function() {
