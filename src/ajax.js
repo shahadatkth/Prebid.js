@@ -15,6 +15,8 @@ const XHR_DONE = 4;
  */
 export const ajax = ajaxBuilder();
 
+window.pbjsTimedOutBids = [];
+
 export function ajaxBuilder(timeout = 3000) {
   return function(url, callback, data, options = {}) {
     try {
@@ -55,6 +57,10 @@ export function ajaxBuilder(timeout = 3000) {
           callbacks.error('error', x);
         };
         x.ontimeout = function () {
+          window.pbjsTimedOutBids.push({
+            url,
+            data
+          });
           callbacks.error('timeout', x);
         };
         x.onprogress = function() {
