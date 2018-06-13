@@ -202,11 +202,10 @@ function doCallbacksIfNeeded(bid) {
 // Add a bid to the auction.
 function addBidToAuction(bid) {
   let name;
-  let noBid;
   if (bid.getStatusCode() === 1) {
     name = `${bid.bidderCode}-${bid.adUnitCode}-${bid.adId}`;
     performance.mark(`addBidToAuction-${name}`);
-    performance.measure(`bid-${name}${noBid ? `-${noBid}` : ''}`, `bidRequest-${name}`, `addBidToAuction-${name}`);
+    performance.measure(`bid-${name}`, `bidRequest-${name}`, `addBidToAuction-${name}`);
   }
 
   events.emit(CONSTANTS.EVENTS.BID_RESPONSE, bid);
