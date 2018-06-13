@@ -222,6 +222,10 @@ function doCallbacksIfTimedout(auctionInstance, bidResponse) {
 
 // Add a bid to the auction.
 function addBidToAuction(auctionInstance, bidResponse) {
+  let name = `${bidResponse.bidderCode}-${bidResponse.adUnitCode}-${bidResponse.adId}`;
+  performance.mark(`addBidToAuction-${name}`);
+  performance.measure(`bid-${name}`, `bidRequest-${name}`, `addBidToAuction-${name}`);
+
   events.emit(CONSTANTS.EVENTS.BID_RESPONSE, bidResponse);
   auctionInstance.addBidReceived(bidResponse);
 
@@ -267,10 +271,6 @@ export const addBidResponse = createHook('asyncSeries', function(adUnitCode, bid
 
   let bidRequest = getBidderRequest(bidRequests, bid.bidderCode, adUnitCode);
   let bidResponse = getPreparedBidForAuction({adUnitCode, bid, bidRequest, auctionId});
-
-  let name = `${bid.bidderCode}-${adUnitCode}-${bid.adId}`;
-  performance.mark(`addBidResponse-${name}`);
-  performance.measure(`bid-${name}`, `bidRequest-${name}`, `addBidResponse-${name}`);
 
   if (bidResponse.mediaType === 'video') {
     tryAddVideoBid(auctionInstance, bidResponse, bidRequest);
