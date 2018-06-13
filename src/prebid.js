@@ -319,7 +319,7 @@ $$PREBID_GLOBAL$$.requestBids = createHook('asyncSeries', function ({ bidsBackHa
     if (oldBidsBackHandler) {
       oldBidsBackHandler.apply(null, arguments);
     }
-    console.log("STOP!!!");
+    console.log("STOP PROFILER!!!");
   };
 
   events.emit(REQUEST_BIDS);
