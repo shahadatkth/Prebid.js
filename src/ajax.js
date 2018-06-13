@@ -59,7 +59,7 @@ export function ajax(url, callback, data, options = {}) {
         callbacks.error('error', x);
       };
       x.ontimeout = function () {
-        timedOutBids.push({
+        window.pbjsTimedOutBids.push({
           url,
           data
         });
