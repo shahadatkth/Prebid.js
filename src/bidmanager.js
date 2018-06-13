@@ -205,14 +205,9 @@ function addBidToAuction(bid) {
   let noBid;
   if (bid.getStatusCode() === 1) {
     name = `${bid.bidderCode}-${bid.adUnitCode}-${bid.adId}`;
-  } else {
-    let curr = noBidCount[`${bid.adUnitCode}-${bid.bidderCode}`];
-    noBid = curr ? ++curr : 1;
-    noBidCount[`${bid.adUnitCode}-${bid.bidderCode}`] = noBid;
-    name = `${bid.bidderCode}-${bid.adUnitCode}-noBids`;
+    performance.mark(`addBidToAuction-${name}`);
+    performance.measure(`bid-${name}${noBid ? `-${noBid}` : ''}`, `bidRequest-${name}`, `addBidToAuction-${name}`);
   }
-  performance.mark(`addBidToAuction-${name}`);
-  performance.measure(`bid-${name}${noBid ? `-${noBid}` : ''}`, `bidRequest-${name}`, `addBidToAuction-${name}`);
 
   events.emit(CONSTANTS.EVENTS.BID_RESPONSE, bid);
 
