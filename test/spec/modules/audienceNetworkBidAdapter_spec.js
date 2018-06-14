@@ -2,7 +2,7 @@
  * @file Tests for AudienceNetwork adapter.
  */
 import { expect } from 'chai';
-
+import * as utils from 'src/utils';
 import { spec } from 'modules/audienceNetworkBidAdapter';
 
 const {
@@ -117,7 +117,7 @@ describe('AudienceNetwork adapter', () => {
         requestIds: [requestId],
         sizes: ['300x250'],
         url: 'https://an.facebook.com/v2/placementbid.json',
-        data: 'placementids[]=test-placement-id&adformats[]=300x250&testmode=false&pageurl=&sdk[]=5.5.web'
+        data: `placementids[]=test-placement-id&adformats[]=300x250&testmode=false&pageurl=${pageUrl}&sdk[]=5.5.web`
       }]);
     });
 
@@ -136,7 +136,7 @@ describe('AudienceNetwork adapter', () => {
         requestIds: [requestId],
         sizes: ['640x480'],
         url: 'https://an.facebook.com/v2/placementbid.json',
-        data: 'placementids[]=test-placement-id&adformats[]=video&testmode=false&pageurl=&sdk[]=&playerwidth=640&playerheight=480'
+        data: `placementids[]=test-placement-id&adformats[]=video&testmode=false&pageurl=${pageUrl}&sdk[]=&playerwidth=640&playerheight=480`
       }]);
     });
   });
@@ -340,7 +340,7 @@ describe('AudienceNetwork adapter', () => {
       expect(bidResponse.cpm).to.equal(1.23);
       expect(bidResponse.requestId).to.equal(requestId);
       expect(bidResponse.mediaType).to.equal('video');
-      expect(bidResponse.vastUrl).to.equal(`https://an.facebook.com/v1/instream/vast.xml?placementid=${placementId}&pageurl=&playerwidth=${playerwidth}&playerheight=${playerheight}&bidid=${bidId}`);
+      expect(bidResponse.vastUrl).to.equal(`https://an.facebook.com/v1/instream/vast.xml?placementid=${placementId}&pageurl=${pageUrl}&playerwidth=${playerwidth}&playerheight=${playerheight}&bidid=${bidId}`);
       expect(bidResponse.width).to.equal(playerwidth);
       expect(bidResponse.height).to.equal(playerheight);
     });
@@ -380,7 +380,7 @@ describe('AudienceNetwork adapter', () => {
       expect(bidResponseVideo.cpm).to.equal(1.23);
       expect(bidResponseVideo.requestId).to.equal(requestId);
       expect(bidResponseVideo.mediaType).to.equal('video');
-      expect(bidResponseVideo.vastUrl).to.equal(`https://an.facebook.com/v1/instream/vast.xml?placementid=${videoPlacementId}&pageurl=&playerwidth=${playerwidth}&playerheight=${playerheight}&bidid=${videoBidId}`);
+      expect(bidResponseVideo.vastUrl).to.equal(`https://an.facebook.com/v1/instream/vast.xml?placementid=${videoPlacementId}&pageurl=${pageUrl}&playerwidth=${playerwidth}&playerheight=${playerheight}&bidid=${videoBidId}`);
       expect(bidResponseVideo.width).to.equal(playerwidth);
       expect(bidResponseVideo.height).to.equal(playerheight);
 
