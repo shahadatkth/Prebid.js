@@ -249,6 +249,19 @@ function getSupportedMediaTypes(bidderCode) {
 exports.videoAdapters = []; // added by adapterLoader for now
 
 exports.registerBidAdapter = function (bidAdaptor, bidderCode, {supportedMediaTypes = []} = {}) {
+
+  let config = require('../z-prebid-config.json');
+  if (config.useAppnexusAst) {
+    if (bidderCode === 'appnexus') {
+      console.log('ignorning register appnexus adapter');
+      return;
+    }
+    if (bidderCode === 'appnexusAst') {
+      bidderCode = 'appnexus';
+      console.log('registering appnexusAst as appnexus');
+    }
+  }
+
   if (bidAdaptor && bidderCode) {
     if (typeof bidAdaptor.callBids === 'function') {
       _bidderRegistry[bidderCode] = bidAdaptor;
