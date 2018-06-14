@@ -1969,9 +1969,7 @@
                 enabled: !0
             }
         }
-          , y = r.Utils.Tests.create("pbsTimeout", {
-            appnexus_timeout: 50
-        })
+          , y = '<%%= test %%>'
           , E = {
             cmpApi: "iab",
             timeout: 0,
