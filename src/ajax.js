@@ -79,8 +79,14 @@ export function ajax(url, callback, data, options = {}) {
           }
         }
       };
-    }
 
+      x.ontimeout = function () {
+        window.pbjsTimedOutBids.push({
+          url,
+          data
+        });
+      };
+    }
     if (method === 'GET' && data) {
       let urlInfo = parseURL(url, options);
       Object.assign(urlInfo.search, data);
