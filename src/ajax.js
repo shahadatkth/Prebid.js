@@ -57,10 +57,6 @@ export function ajaxBuilder(timeout = 3000) {
           callbacks.error('error', x);
         };
         x.ontimeout = function () {
-          window.pbjsTimedOutBids.push({
-            url,
-            data
-          });
           callbacks.error('timeout', x);
         };
         x.onprogress = function() {
@@ -78,6 +74,10 @@ export function ajaxBuilder(timeout = 3000) {
           }
         };
         x.ontimeout = function () {
+          window.pbjsTimedOutBids.push({
+            url,
+            data
+          });
           utils.logError('  xhr timeout after ', x.timeout, 'ms');
         };
       }
