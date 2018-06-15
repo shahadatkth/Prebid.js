@@ -306,6 +306,7 @@ export function newBidder(spec) {
           onResponse();
 
           function addBidUsingRequestMap(bid) {
+            bid.SRA = !Array.isArray(requests) || requests.length === 1;
             // In Prebid 1.0 all the validation logic from bidmanager will move here, as of now we are only validating new params so that adapters dont miss adding them.
             if (hasValidKeys(bid)) {
               const bidRequest = bidRequestMap[bid.requestId];

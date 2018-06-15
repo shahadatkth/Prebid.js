@@ -22,7 +22,7 @@ export const spec = {
   },
   buildRequests: function(bids) {
     let isIfr = utils.inIframe();
-    let currentURL = (window.parent !== window) ? document.referrer : window.location.href;
+    let currentURL = config.getConfig('pageUrl');
     if (bids.length === 0) {
       return;
     }
@@ -160,7 +160,7 @@ function createBidResponses(adUnits, {bids, startTime}) {
       bd: +(new Date()) - startTime,
       br: '0', // may be 0, t, or p
       bt: bt,
-      bs: window.location.hostname
+      bs: (new URL(config.getConfig('pageUrl'))).hostname
     };
 
     beaconParams.br = beaconParams.bt < beaconParams.bd ? 't' : 'p';
