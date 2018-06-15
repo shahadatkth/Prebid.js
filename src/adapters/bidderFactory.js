@@ -301,6 +301,7 @@ export function newBidder(spec) {
           onResponse(bids);
 
           function addBidUsingRequestMap(bid) {
+            bid.SRA = !Array.isArray(requests) || requests.length === 1;
             const bidRequest = bidRequestMap[bid.requestId];
             if (bidRequest) {
               const prebidBid = Object.assign(bidfactory.createBid(CONSTANTS.STATUS.GOOD, bidRequest), bid);

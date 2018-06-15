@@ -2,6 +2,7 @@ import * as utils from 'src/utils';
 import { registerBidder } from 'src/adapters/bidderFactory';
 import { BANNER } from 'src/mediaTypes';
 import { REPO_AND_VERSION } from 'src/constants';
+import { config } from 'src/config';
 
 export const spec = {
   code: 'sovrn',
@@ -38,8 +39,8 @@ export const spec = {
       id: utils.getUniqueIdentifierStr(),
       imp: sovrnImps,
       site: {
-        domain: loc.host,
-        page: loc.host + loc.pathname + loc.search + loc.hash
+        domain: new URL(config.getConfig('pageUrl')).host,
+        page: config.getConfig('pageUrl')
       }
     };
     if (iv) sovrnBidReq.iv = iv;

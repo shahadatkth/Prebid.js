@@ -367,7 +367,7 @@ function registerBeacon(mediaType, adUnit, startTime) {
     bd: +(new Date()) - startTime,
     bp: adUnit.pub_rev,
     br: '0', // may be 0, t, or p
-    bs: utils.getTopWindowLocation().hostname,
+    bs: (new URL(config.getConfig('pageUrl'))).hostname,
     bt: bt,
     ts: adUnit.ts
   };
