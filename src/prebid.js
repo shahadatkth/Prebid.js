@@ -366,11 +366,20 @@ $$PREBID_GLOBAL$$.clearAuction = function() {
  * @alias module:pbjs.requestBids
  */
 $$PREBID_GLOBAL$$.requestBids = function ({ bidsBackHandler, timeout, adUnits, adUnitCodes } = {}) {
-  performance.mark("startAuction");
+
+  let auction = 'auction';
+  let startAuction = 'startAuction';
+  let endAuction = 'endAuction';
+  if (Array.isArray(adUnits)) {
+    auction += `-${adUnits[0].transactionId}`;
+    startAuction += `-${adUnits[0].transactionId}`;
+    endAuction += `-${adUnits[0].transactionId}`;
+  }
+  performance.mark(startAuction);
   let oldBidsBackHandler = bidsBackHandler;
   bidsBackHandler = function() {
-    performance.mark("endAuction");
-    performance.measure("auction", "startAuction", "endAuction");
+    performance.mark(endAuction);
+    performance.measure(auction, startAuction, endAuction);
     if (oldBidsBackHandler) {
       oldBidsBackHandler.apply(null, arguments);
     }
