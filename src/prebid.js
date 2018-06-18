@@ -311,11 +311,19 @@ $$PREBID_GLOBAL$$.removeAdUnit = function (adUnitCode) {
  * @alias module:pbjs.requestBids
  */
 $$PREBID_GLOBAL$$.requestBids = createHook('asyncSeries', function ({ bidsBackHandler, timeout, adUnits, adUnitCodes, labels } = {}) {
-  performance.mark("startAuction");
+  let auctionMark = 'auction';
+  let startAuction = 'startAuction';
+  let endAuction = 'endAuction';
+  if (Array.isArray(adUnits)) {
+    auctionMark += `-${adUnits[0].transactionId}`;
+    startAuction += `-${adUnits[0].transactionId}`;
+    endAuction += `-${adUnits[0].transactionId}`;
+  }
+  performance.mark(startAuction);
   let oldBidsBackHandler = bidsBackHandler;
   bidsBackHandler = function() {
-    performance.mark("endAuction");
-    performance.measure("auction", "startAuction", "endAuction");
+    performance.mark(endAuction);
+    performance.measure(auctionMark, startAuction, endAuction);
     if (oldBidsBackHandler) {
       oldBidsBackHandler.apply(null, arguments);
     }
