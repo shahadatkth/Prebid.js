@@ -171,7 +171,7 @@ exports.getTopWindowLocation = function() {
 
 exports.getTopFrameReferrer = function () {
   try {
-    // force an exception in x-domain environments. #1509
+    // force exception in x-domain environments. #1509
     window.top.location.toString();
     let referrerLoc = '';
     let currentWindow;
