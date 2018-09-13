@@ -117,9 +117,10 @@ export const spec = {
       if (spec.hasVideoMediaType(bidRequest)) {
         let params = bidRequest.params;
         let size = parseSizes(bidRequest);
-
+        let pageUrl = !params.referrer ? utils.getTopWindowUrl() : params.referrer;
+            
         let data = {
-          page_url: !params.referrer ? utils.getTopWindowUrl() : params.referrer,
+          page_url: decodeURIComponent(pageUrl.replace(/\+/g, ' ')),
           resolution: _getScreenResolution(),
           account_id: params.accountId,
           integration: INTEGRATION,
