@@ -117,10 +117,9 @@ export const spec = {
       if (spec.hasVideoMediaType(bidRequest)) {
         let params = bidRequest.params;
         let size = parseSizes(bidRequest);
-        let pageUrl = !params.referrer ? utils.getTopWindowUrl() : params.referrer;
-            
+ 
         let data = {
-          page_url: decodeURIComponent(pageUrl.replace(/\+/g, ' ')),
+          page_url: !params.referrer ? utils.getTopWindowUrl() : params.referrer,
           resolution: _getScreenResolution(),
           account_id: params.accountId,
           integration: INTEGRATION,
@@ -213,9 +212,11 @@ export const spec = {
         utils._each(inventory, (item, key) => data.push(`tg_i.${key}`, item));
       }
 
+      let _rf = !pageUrl ? utils.getTopWindowUrl() : pageUrl;
+      
       data.push(
         'rand', Math.random(),
-        'rf', !pageUrl ? utils.getTopWindowUrl() : pageUrl
+        'rf', decodeURIComponent(_rf.replace(/\+/g, ' '))
       );
 
       data = data.concat(_getDigiTrustQueryParams());
