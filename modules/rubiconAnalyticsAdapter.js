@@ -238,6 +238,19 @@ function parseBidResponse(bid) {
 
 let samplingFactor = 1;
 let accountId;
+let rubiconAliases = [];
+
+/*
+  Checks the alias registry for any entries of the rubicon bid adapter.
+  adds to the rubiconAliases list if found
+*/
+function setRubiconAliases(aliasRegistry) {
+  Object.keys(aliasRegistry).forEach(function (alias) {
+    if (aliasRegistry[alias] && aliasRegistry[alias] === 'rubicon') {
+      rubiconAliases.push(alias);
+    }
+  });
+}
 
 let baseAdapter = adapter({analyticsType: 'endpoint'});
 let rubiconAdapter = Object.assign({}, baseAdapter, {
@@ -288,6 +301,8 @@ let rubiconAdapter = Object.assign({}, baseAdapter, {
   track({eventType, args}) {
     switch (eventType) {
       case AUCTION_INIT:
+        // set the rubicon aliases
+        setRubiconAliases(adaptermanager.aliasRegistry);
         let cacheEntry = _pick(args, [
           'timestamp',
           'timeout'
@@ -431,6 +446,8 @@ let rubiconAdapter = Object.assign({}, baseAdapter, {
         cache.timeouts[args.auctionId] = setTimeout(() => {
           sendMessage.call(this, args.auctionId);
         }, SEND_TIMEOUT);
+        // reset rubiconAliases in case another auction occurs
+        rubiconAliases = [];
         break;
       case BID_TIMEOUT:
         args.forEach(badBid => {
