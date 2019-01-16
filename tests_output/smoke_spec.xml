@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<testsuites errors="1"
+            failures="0"
+            tests="0">
+
+  <testsuite name="smoke_spec"
+    errors="1" failures="0" hostname="" id="" package="smoke_spec" skipped="1"
+    tests="0" time="0.000" timestamp="">
+  
+
+  
+
+  
+    
+    <testcase
+      name="Demo test Google" classname="smoke_spec">
+      <skipped />
+    </testcase>
+    
+  
+  </testsuite>
+</testsuites>

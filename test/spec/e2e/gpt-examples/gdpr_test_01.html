@@ -1,0 +1,135 @@
+<html>
+
+<head>
+    <meta charset="UTF8">
+
+    <!-- Initialize and load the CMP -->
+    <script>window.__cmp = { config: { logging: 'debug' } }</script>
+    <script src="//acdn.adnxs.com/cmp/cmp.complete.bundle.js"></script>
+
+    <!-- The default bidder params file -->
+    <script type="text/javascript" src="../common/bidders.js"></script>
+
+    <script>
+        // Build Prebid URL to load
+        (function () {
+            var d = document, pbs = d.createElement("script"), pro = d.location.protocal;
+            pbs.type = "text/javascript";
+            pbs.src = '/build/dev/prebid.js';
+            var target = document.getElementsByTagName("head")[0];
+            target.insertBefore(pbs, target.firstChild);
+        })();
+
+        // Prebid Ad Units
+        var adUnits = [
+            {
+                code: 'test_div_1',
+                sizes: [[728, 90]],
+                bids:
+                    [appnexus, pulsepoint, aol, rubicon]
+            },
+            {
+                code: 'test_div_2',
+                sizes: [[300, 250]],
+                bids:
+                    [appnexus, pulsepoint, aol, rubicon]
+            }
+        ];
+
+        var pbjs = pbjs || {};
+        pbjs.que = pbjs.que || [];
+
+    </script>
+    <script>
+        var googletag = googletag || {};
+        googletag.cmd = googletag.cmd || [];
+        googletag.cmd.push(function () {
+            googletag.pubads().disableInitialLoad();
+        });
+        pbjs.que.push(function () {
+            // Just append information to the div about the winner
+            pbjs.onEvent('bidWon', function(bid) {
+                document.getElementById(bid.adUnitCode).prepend('Winner: ' + bid.bidder + ' -- CPM: ' + bid.cpm + ' -- Time to Respond: ' + bid.timeToRespond);
+            });
+            // turn on CMP
+            pbjs.setConfig({
+                consentManagement: {
+                    cmpApi: "iab",
+                    allowAuctionWithoutConsent: true,
+                    timeout: 500
+                },
+            });
+
+            pbjs.addAdUnits(adUnits);
+            pbjs.requestBids({
+                bidsBackHandler: function (bidResponses) {
+                    sendAdserverRequest(bidResponses);
+                }
+            });
+        });
+
+        function sendAdserverRequest() {
+            if (pbjs.adserverRequestSent) return;
+            pbjs.adserverRequestSent = true;
+            googletag.cmd.push(function () {
+                pbjs.que.push(function () {
+                    pbjs.setTargetingForGPTAsync();
+                    googletag.pubads().refresh();
+                });
+            });
+            console.log("Callback Fired");
+        }
+
+        setTimeout(function () {
+            sendAdserverRequest();
+        }, 3000);
+
+    </script>
+
+    <script>
+        // Load GPT
+        (function () {
+            var gads = document.createElement('script');
+            gads.async = true;
+            gads.type = 'text/javascript';
+            var useSSL = 'https:' == document.location.protocol;
+            gads.src = (useSSL ? 'https:' : 'http:') +
+                '//www.googletagservices.com/tag/js/gpt.js';
+            var node = document.getElementsByTagName('script')[0];
+            node.parentNode.insertBefore(gads, node);
+        })();
+    </script>
+
+    <script>
+        // Initialize our GPT Slots
+        googletag.cmd.push(function () {
+            googletag.defineSlot('/112115922/FL_PB_MedRect', [[728, 90]], 'test_div_1').addService(googletag.pubads());
+            googletag.defineSlot('/112115922/FL_PB_MedRect', [[300, 250]], 'test_div_2').addService(googletag.pubads());
+            googletag.pubads().enableSingleRequest();
+            googletag.enableServices();
+        });
+    </script>
+</head>
+
+<body>
+    <h2>PBJS_CMP_Test_05</h2>
+    <br><br>
+    <h3>START test_div_1 Ad Slot</h3>
+    <div id='test_div_1' style="position: relative; top: 1;">
+        <script>
+            googletag.cmd.push(function () { googletag.display('test_div_1'); });
+        </script>
+    </div>
+    <h3>END test_div_1 Ad Slot</h3>
+    <br><br><br><br>
+    <h3>START test_div_2 Ad Slot</h3>
+    <div id='test_div_2' style="position: relative; top: 1;">
+        <script>
+            googletag.cmd.push(function () { googletag.display('test_div_2'); });
+        </script>
+    </div>
+    <h3>END test_div_2 Ad Slot</h3>
+    <br><br>
+</body>
+
+</html>
