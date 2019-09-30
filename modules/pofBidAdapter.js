@@ -49,18 +49,20 @@ export const spec = {
         let bid = pofServerBids[pofSlotID];
         let response = serverResponse.body[pofSlotID];
 
-        let bidResponse = {
-          requestId: bid.bidId,
-          cpm: response.cpm,
-          width: response.width,
-          height: response.height,
-          ad: response.html,
-          ttl: 360,
-          creativeId: bid.bidder,
-          netRevenue: true,
-          currency: 'USD'
+        if (response.cpm > 0 && response.html) {
+          let bidResponse = {
+            requestId: bid.bidId,
+            cpm: response.cpm,
+            width: response.width,
+            height: response.height,
+            ad: response.html,
+            ttl: 360,
+            creativeId: bid.bidder,
+            netRevenue: true,
+            currency: 'USD'
+          }
+          bidResponses.push(bidResponse);
         }
-        bidResponses.push(bidResponse);
       }
       utils.logInfo('PofBidAdapter bidResponses: ', bidResponses);
       let timeNow = _getTimeStampInMS();
