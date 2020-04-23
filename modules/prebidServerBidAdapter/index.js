@@ -77,37 +77,46 @@ config.setDefaults({
  * @property {Object} [extPrebid] properties will be merged into request.ext.prebid
  * @property {AdapterOptions} [adapterOptions] adds arguments to resulting OpenRTB payload to Prebid Server
  */
-function setS2sConfig(options) {
-  if (options.defaultVendor) {
-    let vendor = options.defaultVendor;
-    let optionKeys = Object.keys(options);
-    if (S2S_VENDORS[vendor]) {
-      // vendor keys will be set if either: the key was not specified by user
-      // or if the user did not set their own distinct value (ie using the system default) to override the vendor
-      Object.keys(S2S_VENDORS[vendor]).forEach((vendorKey) => {
-        if (s2sDefaultConfig[vendorKey] === options[vendorKey] || !includes(optionKeys, vendorKey)) {
-          options[vendorKey] = S2S_VENDORS[vendor][vendorKey];
-        }
-      });
-    } else {
-      utils.logError('Incorrect or unavailable prebid server default vendor option: ' + vendor);
+function setS2sConfig(s2sConfigs) {
+  const s2sConfigsCopy = (Array.isArray(s2sConfigs) ? s2sConfigs : [s2sConfigs]).map(s2sConfig => {
+    const s2sConfigCopy = {};
+    
+    if (s2sConfig.defaultVendor) {
+      let vendor = s2sConfig.defaultVendor;
+      
+      if (S2S_VENDORS[vendor]) {
+        // vendor keys will be set if either: the key was not specified by user
+        // or if the user did not set their own distinct value (ie using the system default) to override the vendor
+        Object.keys(S2S_VENDORS[vendor]).forEach(vendorKey => {
+          if (s2sDefaultConfig[vendorKey] === s2sConfig[vendorKey] || !includes(Object.keys(s2sConfig), vendorKey)) {
+            s2sConfigCopy[vendorKey] = S2S_VENDORS[vendor][vendorKey];
+          }
+        });
+      } else {
+        utils.logError('Incorrect or unavailable prebid server default vendor option: ' + vendor);
+        return null;
+      }
+    }
+    
+    if (['accountId', 'bidders', 'endpoint'].filter(key => {
+      if (!includes(Object.keys(s2sConfig), key)) {
+        utils.logError(key + ' missing in server to server config');
+        return true;
+      }
       return false;
+    }).length) {
+      return null;
     }
+    
+    return s2sConfigCopy;
+  });
+  
+  if (s2sConfigsCopy.every(s2sConfig => !!s2sConfig)) {
+    _s2sConfig = s2sConfigsCopy;
+  } else {
+    utils.logWarn('Invalid s2sConfig data for prebid server');
   }
-
-  let keys = Object.keys(options);
-
-  if (['accountId', 'bidders', 'endpoint'].filter(key => {
-    if (!includes(keys, key)) {
-      utils.logError(key + ' missing in server to server config');
-      return true;
-    }
-    return false;
-  }).length > 0) {
-    return;
-  }
-
-  _s2sConfig = options;
+  
 }
 getConfig('s2sConfig', ({s2sConfig}) => setS2sConfig(s2sConfig));
 
@@ -121,7 +130,7 @@ export function resetSyncedStatus() {
 /**
  * @param  {Array} bidderCodes list of bidders to request user syncs for.
  */
-function queueSync(bidderCodes, gdprConsent, uspConsent) {
+function queueSync(bidderCodes, gdprConsent, uspConsent, s2sConfig) {
   if (_synced) {
     return;
   }
@@ -130,10 +139,10 @@ function queueSync(bidderCodes, gdprConsent, uspConsent) {
   const payload = {
     uuid: utils.generateUUID(),
     bidders: bidderCodes,
-    account: _s2sConfig.accountId
+    account: s2sConfig.accountId
   };
 
-  let userSyncLimit = _s2sConfig.userSyncLimit;
+  let userSyncLimit = s2sConfig.userSyncLimit;
   if (utils.isNumber(userSyncLimit) && userSyncLimit > 0) {
     payload['limit'] = userSyncLimit;
   }
@@ -155,11 +164,11 @@ function queueSync(bidderCodes, gdprConsent, uspConsent) {
   }
 
   const jsonPayload = JSON.stringify(payload);
-  ajax(_s2sConfig.syncEndpoint,
+  ajax(s2sConfig.syncEndpoint,
     (response) => {
       try {
         response = JSON.parse(response);
-        doAllSyncs(response.bidder_status);
+        doAllSyncs(response.bidder_status, s2sConfig);
       } catch (e) {
         utils.logError(e);
       }
@@ -171,16 +180,16 @@ function queueSync(bidderCodes, gdprConsent, uspConsent) {
     });
 }
 
-function doAllSyncs(bidders) {
+function doAllSyncs(bidders, s2sConfig) {
   if (bidders.length === 0) {
     return;
   }
 
   const thisSync = bidders.pop();
   if (thisSync.no_cookie) {
-    doPreBidderSync(thisSync.usersync.type, thisSync.usersync.url, thisSync.bidder, utils.bind.call(doAllSyncs, null, bidders));
+    doPreBidderSync(thisSync.usersync.type, thisSync.usersync.url, thisSync.bidder, utils.bind.call(doAllSyncs, null, bidders, s2sConfig));
   } else {
-    doAllSyncs(bidders);
+    doAllSyncs(bidders, s2sConfig);
   }
 }
 
@@ -191,10 +200,11 @@ function doAllSyncs(bidders) {
  * @param {string} url the url to sync
  * @param {string} bidder name of bidder doing sync for
  * @param {function} done an exit callback; to signify this pixel has either: finished rendering or something went wrong
+ * @param s2sConfig
  */
-function doPreBidderSync(type, url, bidder, done) {
-  if (_s2sConfig.syncUrlModifier && typeof _s2sConfig.syncUrlModifier[bidder] === 'function') {
-    const newSyncUrl = _s2sConfig.syncUrlModifier[bidder](type, url, bidder);
+function doPreBidderSync(type, url, bidder, done, s2sConfig) {
+  if (s2sConfig.syncUrlModifier && typeof s2sConfig.syncUrlModifier[bidder] === 'function') {
+    const newSyncUrl = s2sConfig.syncUrlModifier[bidder](type, url, bidder);
     doBidderSync(type, newSyncUrl, bidder, done)
   } else {
     doBidderSync(type, url, bidder, done)
@@ -260,19 +270,19 @@ function _getDigiTrustQueryParams(bidRequest = {}) {
   };
 }
 
-function _appendSiteAppDevice(request, pageUrl) {
+function _appendSiteAppDevice(request, pageUrl, accountId) {
   if (!request) return;
 
   // ORTB specifies app OR site
   if (typeof config.getConfig('app') === 'object') {
     request.app = config.getConfig('app');
-    request.app.publisher = {id: _s2sConfig.accountId}
+    request.app.publisher = {id: accountId}
   } else {
     request.site = {};
     if (typeof config.getConfig('site') === 'object') {
       request.site = config.getConfig('site');
     }
-    utils.deepSetValue(request.site, 'publisher.id', _s2sConfig.accountId);
+    utils.deepSetValue(request.site, 'publisher.id', accountId);
     request.site.page = pageUrl;
   }
   if (typeof config.getConfig('device') === 'object') {
@@ -367,7 +377,7 @@ let nativeEventTrackerMethodMap = {
 let bidIdMap = {};
 let nativeAssetCache = {}; // store processed native params to preserve
 const OPEN_RTB_PROTOCOL = {
-  buildRequest(s2sBidRequest, bidRequests, adUnits) {
+  buildRequest(s2sBidRequest, bidRequests, adUnits, s2sConfig) {
     let imps = [];
     let aliases = {};
 
@@ -504,11 +514,11 @@ const OPEN_RTB_PROTOCOL = {
         if (adapter && adapter.getSpec().transformBidParams) {
           bid.params = adapter.getSpec().transformBidParams(bid.params, true);
         }
-        acc[bid.bidder] = (_s2sConfig.adapterOptions && _s2sConfig.adapterOptions[bid.bidder]) ? Object.assign({}, bid.params, _s2sConfig.adapterOptions[bid.bidder]) : bid.params;
+        acc[bid.bidder] = (s2sConfig.adapterOptions && s2sConfig.adapterOptions[bid.bidder]) ? Object.assign({}, bid.params, s2sConfig.adapterOptions[bid.bidder]) : bid.params;
         return acc;
       }, {});
 
-      const imp = { id: adUnit.code, ext, secure: _s2sConfig.secure };
+      const imp = { id: adUnit.code, ext, secure: s2sConfig.secure };
 
       /**
        * Prebid AdSlot
@@ -539,7 +549,7 @@ const OPEN_RTB_PROTOCOL = {
     const request = {
       id: s2sBidRequest.tid,
       source: {tid: s2sBidRequest.tid},
-      tmax: _s2sConfig.timeout,
+      tmax: s2sConfig.timeout,
       imp: imps,
       test: getConfig('debug') ? 1 : 0,
       ext: {
@@ -555,8 +565,8 @@ const OPEN_RTB_PROTOCOL = {
     };
 
     // s2sConfig video.ext.prebid is passed through openrtb to PBS
-    if (_s2sConfig.extPrebid && typeof _s2sConfig.extPrebid === 'object') {
-      request.ext.prebid = Object.assign(request.ext.prebid, _s2sConfig.extPrebid);
+    if (s2sConfig.extPrebid && typeof s2sConfig.extPrebid === 'object') {
+      request.ext.prebid = Object.assign(request.ext.prebid, s2sConfig.extPrebid);
     }
 
     /**
@@ -571,7 +581,7 @@ const OPEN_RTB_PROTOCOL = {
       request.cur = [adServerCur[0]];
     }
 
-    _appendSiteAppDevice(request, bidRequests[0].refererInfo.referer);
+    _appendSiteAppDevice(request, bidRequests[0].refererInfo.referer, s2sConfig.accountId);
 
     const digiTrust = _getDigiTrustQueryParams(bidRequests && bidRequests[0]);
     if (digiTrust) {
@@ -794,32 +804,36 @@ export function PrebidServer() {
       .reduce(utils.flatten)
       .filter(utils.uniques);
 
-    if (_s2sConfig && _s2sConfig.syncEndpoint) {
-      let gdprConsent, uspConsent;
-      if (Array.isArray(bidRequests) && bidRequests.length > 0) {
-        gdprConsent = bidRequests[0].gdprConsent;
-        uspConsent = bidRequests[0].uspConsent;
-      }
+    if (_s2sConfig) {
+      _s2sConfig.forEach(s2sConfig => {
+        if (s2sConfig && s2sConfig.syncEndpoint) {
+          let gdprConsent, uspConsent;
+          if (Array.isArray(bidRequests) && bidRequests.length > 0) {
+            gdprConsent = bidRequests[0].gdprConsent;
+            uspConsent = bidRequests[0].uspConsent;
+          }
 
-      let syncBidders = _s2sConfig.bidders
-        .map(bidder => adapterManager.aliasRegistry[bidder] || bidder)
-        .filter((bidder, index, array) => (array.indexOf(bidder) === index));
+          let syncBidders = s2sConfig.bidders
+              .map(bidder => adapterManager.aliasRegistry[bidder] || bidder)
+              .filter((bidder, index, array) => (array.indexOf(bidder) === index));
 
-      queueSync(syncBidders, gdprConsent, uspConsent);
-    }
+          queueSync(syncBidders, gdprConsent, uspConsent, s2sConfig);
+        }
 
-    const request = OPEN_RTB_PROTOCOL.buildRequest(s2sBidRequest, bidRequests, validAdUnits);
-    const requestJson = request && JSON.stringify(request);
-    if (request && requestJson) {
-      ajax(
-        _s2sConfig.endpoint,
-        {
-          success: response => handleResponse(response, requestedBidders, bidRequests, addBidResponse, done),
-          error: done
-        },
-        requestJson,
-        { contentType: 'text/plain', withCredentials: true }
-      );
+        const request = OPEN_RTB_PROTOCOL.buildRequest(s2sBidRequest, bidRequests, validAdUnits, s2sConfig);
+        const requestJson = request && JSON.stringify(request);
+        if (request && requestJson) {
+          ajax(
+              s2sConfig.endpoint,
+              {
+                success: response => handleResponse(response, requestedBidders, bidRequests, addBidResponse, done),
+                error: done
+              },
+              requestJson,
+              { contentType: 'text/plain', withCredentials: true }
+          );
+        }
+      });
     }
   };
 

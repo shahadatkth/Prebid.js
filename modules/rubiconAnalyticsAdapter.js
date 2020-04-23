@@ -5,6 +5,7 @@ import { ajax } from '../src/ajax.js';
 import { config } from '../src/config.js';
 import * as utils from '../src/utils.js';
 import { getGlobal } from '../src/prebidGlobal.js';
+import find from 'core-js/library/fn/array/find.js';
 
 const {
   EVENTS: {
@@ -85,6 +86,9 @@ function formatSource(src) {
 
 function sendMessage(auctionId, bidWonId) {
   function formatBid(bid) {
+    const s2sConfigForBid = find((serverConfig || []), function (s2sConfig) {
+      return s2sConfig.bidders.indexOf(bid.bidder) !== -1;
+    });
     return utils.pick(bid, [
       'bidder',
       'bidId', bidId => utils.deepAccess(bid, 'bidResponse.seatBidId') || bidId,
@@ -94,7 +98,7 @@ function sendMessage(auctionId, bidWonId) {
         if (source) {
           return source;
         }
-        return serverConfig && Array.isArray(serverConfig.bidders) && serverConfig.bidders.indexOf(bid.bidder) !== -1
+        return s2sConfigForBid && Array.isArray(s2sConfigForBid.bidders) && s2sConfigForBid.bidders.indexOf(bid.bidder) !== -1
           ? 'server' : 'client'
       },
       'clientLatencyMillis',
