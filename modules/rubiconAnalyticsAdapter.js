@@ -85,10 +85,7 @@ function formatSource(src) {
 }
 
 function sendMessage(auctionId, bidWonId) {
-  function formatBid(bid) {
-    const s2sConfigForBid = find((serverConfig || []), function (s2sConfig) {
-      return s2sConfig.bidders.indexOf(bid.bidder) !== -1;
-    });
+  function formatBid(bid, s2sConfig) {
     return utils.pick(bid, [
       'bidder',
       'bidId', bidId => utils.deepAccess(bid, 'bidResponse.seatBidId') || bidId,
@@ -98,7 +95,7 @@ function sendMessage(auctionId, bidWonId) {
         if (source) {
           return source;
         }
-        return s2sConfigForBid && Array.isArray(s2sConfigForBid.bidders) && s2sConfigForBid.bidders.indexOf(bid.bidder) !== -1
+        return s2sConfig && Array.isArray(s2sConfig.bidders) && s2sConfig.bidders.indexOf(bid.bidder) !== -1
           ? 'server' : 'client'
       },
       'clientLatencyMillis',
@@ -114,8 +111,8 @@ function sendMessage(auctionId, bidWonId) {
       ]) : undefined
     ]);
   }
-  function formatBidWon(bid) {
-    return Object.assign(formatBid(bid), utils.pick(bid.adUnit, [
+  function formatBidWon(bid, s2sConfig) {
+    return Object.assign(formatBid(bid, s2sConfig), utils.pick(bid.adUnit, [
       'adUnitCode',
       'transactionId',
       'videoAdFormat', () => bid.videoAdFormat,
@@ -178,7 +175,9 @@ function sendMessage(auctionId, bidWonId) {
         adUnit.status = bid.status;
       }
 
-      adUnit.bids.push(formatBid(bid));
+      adUnit.bids.push(formatBid(bid, find((serverConfig || []), function (s2sConfig) {
+        return s2sConfig.bidders.indexOf(bid.bidder) !== -1;
+      })));
 
       return adUnits;
     }, {});
@@ -217,7 +216,9 @@ function sendMessage(auctionId, bidWonId) {
     let bidsWon = Object.keys(auctionCache.bidsWon).reduce((memo, adUnitCode) => {
       let bidId = auctionCache.bidsWon[adUnitCode];
       if (bidId) {
-        memo.push(formatBidWon(auctionCache.bids[bidId]));
+        memo.push(formatBidWon(auctionCache.bids[bidId], find((serverConfig || []), function (s2sConfig) {
+          return s2sConfig.bidders.indexOf((auctionCache.bids[bidId] || {}).bidder) !== -1;
+        })));
       }
       return memo;
     }, []);
@@ -229,7 +230,9 @@ function sendMessage(auctionId, bidWonId) {
     auctionCache.sent = true;
   } else if (bidWonId && auctionCache && auctionCache.bids[bidWonId]) {
     message.bidsWon = [
-      formatBidWon(auctionCache.bids[bidWonId])
+      formatBidWon(auctionCache.bids[bidWonId], find((serverConfig || []), function (s2sConfig) {
+        return s2sConfig.bidders.indexOf(auctionCache.bids[bidWonId].bidder) !== -1;
+      }))
     ];
   }
 
