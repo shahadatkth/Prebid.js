@@ -77,23 +77,25 @@ config.setDefaults({
  * @property {Object} [extPrebid] properties will be merged into request.ext.prebid
  * @property {AdapterOptions} [adapterOptions] adds arguments to resulting OpenRTB payload to Prebid Server
  */
+
+/**
+ * @param {(Array.<options>|options)} s2sConfigs
+ */
 function setS2sConfig(s2sConfigs) {
   const s2sConfigsCopy = (Array.isArray(s2sConfigs) ? s2sConfigs : [s2sConfigs]).map(s2sConfig => {
     const s2sConfigCopy = {};
     
     if (s2sConfig.defaultVendor) {
-      let vendor = s2sConfig.defaultVendor;
-      
-      if (S2S_VENDORS[vendor]) {
+      if (S2S_VENDORS[s2sConfig.defaultVendor]) {
         // vendor keys will be set if either: the key was not specified by user
         // or if the user did not set their own distinct value (ie using the system default) to override the vendor
-        Object.keys(S2S_VENDORS[vendor]).forEach(vendorKey => {
-          if (s2sDefaultConfig[vendorKey] === s2sConfig[vendorKey] || !includes(Object.keys(s2sConfig), vendorKey)) {
-            s2sConfigCopy[vendorKey] = S2S_VENDORS[vendor][vendorKey];
+        Object.keys(S2S_VENDORS[s2sConfig.defaultVendor]).forEach(key => {
+          if (s2sDefaultConfig[key] === s2sConfig[key] || !includes(Object.keys(s2sConfig), key)) {
+            s2sConfigCopy[key] = S2S_VENDORS[s2sConfig.defaultVendor][key];
           }
         });
       } else {
-        utils.logError('Incorrect or unavailable prebid server default vendor option: ' + vendor);
+        utils.logError('Incorrect or unavailable prebid server default vendor option: ' + s2sConfig.defaultVendor);
         return null;
       }
     }
@@ -799,11 +801,8 @@ export function PrebidServer() {
     );
 
     // in case config.bidders contains invalid bidders, we only process those we sent requests for
-    const requestedBidders = validAdUnits
-      .map(adUnit => adUnit.bids.map(bid => bid.bidder).filter(utils.uniques))
-      .reduce(utils.flatten)
-      .filter(utils.uniques);
-
+    const requestedBidders = utils.getBidderCodes(validAdUnits);
+    
     if (_s2sConfig) {
       _s2sConfig.forEach(s2sConfig => {
         if (s2sConfig && s2sConfig.syncEndpoint) {

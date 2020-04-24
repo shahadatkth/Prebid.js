@@ -118,8 +118,7 @@ function getBids({bidderCode, auctionId, bidderRequestId, adUnits, labels, src})
 
 const hookedGetBids = hook('sync', getBids, 'getBids');
 
-function getAdUnitCopyForPrebidServer(adUnits) {
-  let adaptersServerSide = _s2sConfig.bidders;
+function getAdUnitCopyForPrebidServer(adUnits, adaptersServerSide) {
   let adUnitsCopy = utils.deepClone(adUnits);
 
   adUnitsCopy.forEach((adUnit) => {
@@ -195,7 +194,7 @@ adapterManager.makeBidRequests = hook('sync', function (adUnits, auctionStart, a
   let clientBidderCodes = bidderCodes;
   let clientTestAdapters = [];
 
-  if (_s2sConfig.enabled) {
+  if (s2sConfig.enabled) {
     // if s2sConfig.bidderControl testing is turned on
     if (doingS2STesting()) {
       // get all adapters doing client testing
@@ -204,25 +203,25 @@ adapterManager.makeBidRequests = hook('sync', function (adUnits, auctionStart, a
     }
 
     // these are called on the s2s adapter
-    let adaptersServerSide = _s2sConfig.bidders;
+    let adaptersServerSide = s2sConfig.bidders;
 
     // don't call these client side (unless client request is needed for testing)
     clientBidderCodes = bidderCodes.filter(elm =>
       !includes(adaptersServerSide, elm) || includes(clientTestAdapters, elm)
     );
 
-    const adUnitsContainServerRequests = adUnits => Boolean(
+    const adUnitsContainServerRequests = (adUnits, s2sConfig) => Boolean(
       find(adUnits, adUnit => find(adUnit.bids, bid => (
         bid.bidSource ||
-        (_s2sConfig.bidderControl && _s2sConfig.bidderControl[bid.bidder])
+        (s2sConfig.bidderControl && s2sConfig.bidderControl[bid.bidder])
       ) && bid.finalSource === s2sTestingModule.SERVER))
     );
 
-    if (isTestingServerOnly() && adUnitsContainServerRequests(adUnits)) {
+    if (isTestingServerOnly() && adUnitsContainServerRequests(adUnits, s2sConfig)) {
       clientBidderCodes.length = 0;
     }
 
-    let adUnitsS2SCopy = getAdUnitCopyForPrebidServer(adUnits);
+    let adUnitsS2SCopy = getAdUnitCopyForPrebidServer(adUnits, s2sConfig.bidders);
     let tid = utils.generateUUID();
     adaptersServerSide.forEach(bidderCode => {
       const bidderRequestId = utils.getUniqueIdentifierStr();
@@ -326,9 +325,8 @@ adapterManager.callBids = (adUnits, bidRequests, addBidResponse, doneCb, request
         });
 
         // only log adapters that actually have adUnit bids
-        let allBidders = s2sBidRequest.ad_units.reduce((adapters, adUnit) => {
-          return adapters.concat((adUnit.bids || []).reduce((adapters, bid) => { return adapters.concat(bid.bidder) }, []));
-        }, []);
+        const allBidders = utils.getBidderCodes(s2sBidRequest.ad_units);
+        
         utils.logMessage(`CALLING S2S HEADER BIDDERS ==== ${adaptersServerSide.filter(adapter => {
           return includes(allBidders, adapter);
         }).join(',')}`);
