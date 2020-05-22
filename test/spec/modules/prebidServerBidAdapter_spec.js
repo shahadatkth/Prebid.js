@@ -254,6 +254,7 @@ const RESPONSE_OPENRTB = {
           'adm': '<script src="http://lax1-ib.adnxs.com/ab?e=wqT_3QKgB6CgAwAAAwDWAAUBCJ7kvtMFEPft7JnIuImSdBj87IDv8q21rXcqNgkAAAECCOA_EQEHNAAA4D8ZAAAAgOtR4D8hERIAKREJADERG6Aw8ub8BDi-B0C-B0gCUNbLkw5Y4YBIYABokUB48NIEgAEBigEDVVNEkgUG8FKYAawCoAH6AagBAbABALgBAsABA8gBAtABCdgBAOABAPABAIoCOnVmKCdhJywgNDk0NDcyLCAxNTE3MjY5NTM0KTt1ZigncicsIDI5NjgxMTEwLDIeAPCckgKBAiFqRHF3RUFpNjBJY0VFTmJMa3c0WUFDRGhnRWd3QURnQVFBUkl2Z2RROHViOEJGZ0FZUF9fX184UGFBQndBWGdCZ0FFQmlBRUJrQUVCbUFFQm9BRUJxQUVEc0FFQXVRRXBpNGlEQUFEZ1A4RUJLWXVJZ3dBQTREX0pBVkx3MU5mdl9lMF8yUUVBQUFBQUFBRHdQLUFCQVBVQgUPKEpnQ0FLQUNBTFVDBRAETDAJCPBUTUFDQWNnQ0FkQUNBZGdDQWVBQ0FPZ0NBUGdDQUlBREFaQURBSmdEQWFnRHV0Q0hCTG9ERVdSbFptRjFiSFFqVEVGWU1Ub3pPRFk1mgI5IS1ndndfUTYEAfCENFlCSUlBUW9BRG9SWkdWbVlYVnNkQ05NUVZneE9qTTROamsu2ALoB-ACx9MB6gJHaHR0cDovL3ByZWJpZC5sb2NhbGhvc3Q6OTk5OS9pbnRlZ3JhdGlvbkV4YW1wbGVzL2dwdC9hcHBuZXh1cy10ZXN0Lmh0bWzyAhAKBkFEVl9JRBIGNCXTHPICEQoGQ1BHARM4BzE5Nzc5MzPyAhAKBUNQBRPwljg1MTM1OTSAAwGIAwGQAwCYAxSgAwGqAwDAA6wCyAMA2AMA4AMA6AMA-AMDgAQAkgQJL29wZW5ydGIymAQAogQMMjE2LjU1LjQ3Ljk0qAQAsgQMCAAQABgAIAAwADgAuAQAwAQAyAQA0gQRZGVmYXVsdCNMQVgxOjM4NjnaBAIIAeAEAPAE1suTDogFAZgFAKAF______8BA7ABqgUkYzdkY2YxNGYtZjliYS00Yzc3LWEzYjQtMjdmNmRmMzkwNjdmwAUAyQVpLhTwP9IFCQkJDFAAANgFAeAFAfAFAfoFBAgAEACQBgA.&s=f4dc8b6fa65845d08f0a87c145e12cb7d6288c2a&referrer=http%3A%2F%2Fprebid.localhost%3A9999%2FintegrationExamples%2Fgpt%2Fappnexus-test.html&pp=${AUCTION_PRICE}"></script>',
           'adid': '29681110',
           'adomain': ['appnexus.com'],
+          'wurl': 'http://wurl.org?id=333',
           'iurl': 'http://lax1-ib.adnxs.com/cr?id=2968111',
           'cid': '958',
           'crid': '2968111',
@@ -304,6 +305,7 @@ const RESPONSE_OPENRTB_VIDEO = {
           ext: {
             prebid: {
               type: 'video',
+              bidid: '654321'
             },
             bidder: {
               appnexus: {
@@ -955,6 +957,7 @@ describe('S2S Adapter', function () {
           aliases: {
             brealtime: 'appnexus'
           },
+          auctiontimestamp: 1510852447530,
           targeting: {
             includebidderkeys: false,
             includewinners: true
@@ -989,6 +992,7 @@ describe('S2S Adapter', function () {
           aliases: {
             [alias]: 'appnexus'
           },
+          auctiontimestamp: 1510852447530,
           targeting: {
             includebidderkeys: false,
             includewinners: true
@@ -1240,6 +1244,7 @@ describe('S2S Adapter', function () {
       expect(requestBid).to.haveOwnProperty('ext');
       expect(requestBid.ext).to.haveOwnProperty('prebid');
       expect(requestBid.ext.prebid).to.deep.equal({
+        auctiontimestamp: 1510852447530,
         foo: 'bar',
         targeting: {
           includewinners: true,
@@ -1271,6 +1276,7 @@ describe('S2S Adapter', function () {
       expect(requestBid).to.haveOwnProperty('ext');
       expect(requestBid.ext).to.haveOwnProperty('prebid');
       expect(requestBid.ext.prebid).to.deep.equal({
+        auctiontimestamp: 1510852447530,
         targeting: {
           includewinners: false,
           includebidderkeys: true
@@ -1304,6 +1310,7 @@ describe('S2S Adapter', function () {
       expect(requestBid).to.haveOwnProperty('ext');
       expect(requestBid.ext).to.haveOwnProperty('prebid');
       expect(requestBid.ext.prebid).to.deep.equal({
+        auctiontimestamp: 1510852447530,
         cache: {
           vastxml: 'vastxml-set-though-extPrebid.cache.vastXml'
         },
@@ -1768,6 +1775,76 @@ describe('S2S Adapter', function () {
       expect(response).to.have.property('vastUrl', 'https://prebid-cache.net/cache?uuid=a5ad3993');
     });
 
+    it('handles response cache from ext.prebid.targeting with wurl', function () {
+      const s2sConfig = Object.assign({}, CONFIG, {
+        endpoint: 'https://prebidserverurl/openrtb2/auction?querystring=param'
+      });
+      config.setConfig({ s2sConfig });
+      const cacheResponse = utils.deepClone(RESPONSE_OPENRTB_VIDEO);
+      cacheResponse.seatbid.forEach(item => {
+        item.bid[0].wurl = 'https://wurl.com?a=1&b=2';
+        item.bid[0].ext.prebid.targeting = {
+          hb_uuid: 'a5ad3993',
+          hb_cache_host: 'prebid-cache.net',
+          hb_cache_path: '/cache'
+        }
+      });
+      server.respondWith(JSON.stringify(cacheResponse));
+      adapter.callBids(VIDEO_REQUEST, BID_REQUESTS, addBidResponse, done, ajax);
+      server.respond();
+
+      sinon.assert.calledOnce(addBidResponse);
+      const response = addBidResponse.firstCall.args[1];
+      expect(response).to.have.property('pbsBidId', '654321');
+    });
+
+    it('handles response cache from ext.prebid.targeting with wurl and removes invalid targeting', function () {
+      const s2sConfig = Object.assign({}, CONFIG, {
+        endpoint: 'https://prebidserverurl/openrtb2/auction?querystring=param'
+      });
+      config.setConfig({ s2sConfig });
+      const cacheResponse = utils.deepClone(RESPONSE_OPENRTB_VIDEO);
+      cacheResponse.seatbid.forEach(item => {
+        item.bid[0].wurl = 'https://wurl.com?a=1&b=2';
+        item.bid[0].ext.prebid.targeting = {
+          hb_uuid: 'a5ad3993',
+          hb_cache_host: 'prebid-cache.net',
+          hb_cache_path: '/cache',
+          hb_winurl: 'https://hbwinurl.com?a=1&b=2',
+          hb_bidid: '1234567890',
+        }
+      });
+      server.respondWith(JSON.stringify(cacheResponse));
+      adapter.callBids(VIDEO_REQUEST, BID_REQUESTS, addBidResponse, done, ajax);
+      server.respond();
+
+      sinon.assert.calledOnce(addBidResponse);
+      const response = addBidResponse.firstCall.args[1];
+
+      expect(response.adserverTargeting).to.deep.equal({
+        hb_uuid: 'a5ad3993',
+        hb_cache_host: 'prebid-cache.net',
+        hb_cache_path: '/cache'
+      });
+    });
+
+    it('add request property pbsBidId with ext.prebid.bidid value', function () {
+      const s2sConfig = Object.assign({}, CONFIG, {
+        endpoint: 'https://prebidserverurl/openrtb2/auction?querystring=param'
+      });
+      config.setConfig({ s2sConfig });
+      const cacheResponse = utils.deepClone(RESPONSE_OPENRTB_VIDEO);
+
+      server.respondWith(JSON.stringify(cacheResponse));
+      adapter.callBids(VIDEO_REQUEST, BID_REQUESTS, addBidResponse, done, ajax);
+      server.respond();
+
+      sinon.assert.calledOnce(addBidResponse);
+      const response = addBidResponse.firstCall.args[1];
+
+      expect(response).to.have.property('pbsBidId', '654321');
+    });
+
     it('handles OpenRTB native responses', function () {
       sinon.stub(utils, 'getBidRequest').returns({
         adUnitCode: 'div-gpt-ad-1460505748561-0',
@@ -1795,6 +1872,58 @@ describe('S2S Adapter', function () {
       utils.getBidRequest.restore();
     });
   });
+
+  describe('bid won events', function () {
+    let server;
+    let logWarnSpy;
+    let getUniqueIdentifierStrStub;
+
+    beforeEach(function () {
+      server = sinon.fakeServer.create();
+      sinon.stub(utils, 'triggerPixel');
+      sinon.stub(utils, 'insertUserSyncIframe');
+      sinon.stub(utils, 'logError');
+      logWarnSpy = sinon.spy(utils, 'logWarn');
+      getUniqueIdentifierStrStub = sinon.stub(utils, 'getUniqueIdentifierStr').callsFake(() => '101010101010');
+    });
+
+    afterEach(function () {
+      server.restore();
+      utils.triggerPixel.restore();
+      utils.insertUserSyncIframe.restore();
+      utils.logError.restore();
+      logWarnSpy.restore();
+      getUniqueIdentifierStrStub.restore();
+    });
+
+    it('should call triggerPixel on bid won event when wurl is defined', function () {
+      const s2sConfig = Object.assign({}, CONFIG, {
+        endpoint: 'https://prebid.adnxs.com/pbs/v1/openrtb2/auction'
+      });
+      config.setConfig({ s2sConfig });
+
+      const clonedResponse = utils.deepClone(RESPONSE_OPENRTB);
+      const bid = clonedResponse.seatbid[0].bid[0];
+      bid.wurl = 'https://wurl.org';
+      server.respondWith(JSON.stringify(clonedResponse));
+      adapter.callBids(REQUEST, BID_REQUESTS, addBidResponse, done, ajax);
+      server.respond();
+
+      events.emit(CONSTANTS.EVENTS.BID_WON, {
+        auctionId: '173afb6d132ba3',
+        adId: '101010101010'
+      });
+
+      sinon.assert.calledOnce(addBidResponse);
+
+      const response = addBidResponse.firstCall.args[1];
+      expect(response).to.have.property('bidderCode', 'appnexus');
+      expect(response).to.have.property('requestId', '123');
+
+      expect(utils.triggerPixel.called).to.be.true;
+      expect(utils.triggerPixel.getCall(0).args[0]).to.include('https://wurl.org');
+    });
+  })
 
   describe('s2sConfig', function () {
     let logErrorSpy;

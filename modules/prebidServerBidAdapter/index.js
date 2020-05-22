@@ -366,10 +366,43 @@ let nativeEventTrackerMethodMap = {
  */
 let bidIdMap = {};
 let nativeAssetCache = {}; // store processed native params to preserve
+
+/**
+ * map wurl to auction id and adId for use in the BID_WON event
+ */
+let wurlMap = {};
+
+/**
+ * @param {string} auctionId the id representing the auction
+ * @param {string} adId generated value set to bidObject.adId by bidderFactory Bid()
+ * @param {string} wurl events.winurl passed from prebidServer as wurl
+ */
+function addWurl(auctionId, adId, wurl) {
+  wurlMap[`${auctionId}${adId}`] = wurl;
+}
+
+/**
+ * @param {string} auctionId the id representing the auction
+ * @param {string} adId generated value set to bidObject.adId by bidderFactory Bid()
+ * @param {string} wurl events.winurl passed from prebidServer as wurl
+ */
+function removeWurl(auctionId, adId) {
+  wurlMap[`${auctionId}${adId}`] = undefined;
+}
+/**
+ * @param {string} auctionId the id representing the auction
+ * @param {string} adId generated value set to bidObject.adId by bidderFactory Bid()
+ * @return {(string|undefined)} events.winurl which was passed as wurl
+ */
+function getWurl(auctionId, adId) {
+  return wurlMap[`${auctionId}${adId}`];
+}
+
 const OPEN_RTB_PROTOCOL = {
   buildRequest(s2sBidRequest, bidRequests, adUnits) {
     let imps = [];
     let aliases = {};
+    const firstBidRequest = bidRequests[0];
 
     // transform ad unit into array of OpenRTB impression objects
     adUnits.forEach(adUnit => {
@@ -515,14 +548,14 @@ const OPEN_RTB_PROTOCOL = {
        * @type {(string|undefined)}
        */
       const pbAdSlot = utils.deepAccess(adUnit, 'fpd.context.pbAdSlot');
-      if (typeof pbAdSlot === 'string' && pbAdSlot) {
+      if (typeof pbAdSlot === 'string' && !utils.isEmptyStr(pbAdSlot)) {
         utils.deepSetValue(imp, 'ext.context.data.adslot', pbAdSlot);
       }
 
       Object.assign(imp, mediaTypes);
 
       // if storedAuctionResponse has been set, pass SRID
-      const storedAuctionResponseBid = find(bidRequests[0].bids, bid => (bid.adUnitCode === adUnit.code && bid.storedAuctionResponse));
+      const storedAuctionResponseBid = find(firstBidRequest.bids, bid => (bid.adUnitCode === adUnit.code && bid.storedAuctionResponse));
       if (storedAuctionResponseBid) {
         utils.deepSetValue(imp, 'ext.prebid.storedauctionresponse.id', storedAuctionResponseBid.storedAuctionResponse.toString());
       }
@@ -544,6 +577,8 @@ const OPEN_RTB_PROTOCOL = {
       test: getConfig('debug') ? 1 : 0,
       ext: {
         prebid: {
+          // set ext.prebid.auctiontimestamp with the auction timestamp. Data type is long integer.
+          auctiontimestamp: firstBidRequest.auctionStart,
           targeting: {
             // includewinners is always true for openrtb
             includewinners: true,
@@ -571,9 +606,9 @@ const OPEN_RTB_PROTOCOL = {
       request.cur = [adServerCur[0]];
     }
 
-    _appendSiteAppDevice(request, bidRequests[0].refererInfo.referer);
+    _appendSiteAppDevice(request, firstBidRequest.refererInfo.referer);
 
-    const digiTrust = _getDigiTrustQueryParams(bidRequests && bidRequests[0]);
+    const digiTrust = _getDigiTrustQueryParams(firstBidRequest);
     if (digiTrust) {
       utils.deepSetValue(request, 'user.ext.digitrust', digiTrust);
     }
@@ -596,19 +631,19 @@ const OPEN_RTB_PROTOCOL = {
     }
 
     if (bidRequests) {
-      if (bidRequests[0].gdprConsent) {
+      if (firstBidRequest.gdprConsent) {
         // note - gdprApplies & consentString may be undefined in certain use-cases for consentManagement module
         let gdprApplies;
-        if (typeof bidRequests[0].gdprConsent.gdprApplies === 'boolean') {
-          gdprApplies = bidRequests[0].gdprConsent.gdprApplies ? 1 : 0;
+        if (typeof firstBidRequest.gdprConsent.gdprApplies === 'boolean') {
+          gdprApplies = firstBidRequest.gdprConsent.gdprApplies ? 1 : 0;
         }
         utils.deepSetValue(request, 'regs.ext.gdpr', gdprApplies);
-        utils.deepSetValue(request, 'user.ext.consent', bidRequests[0].gdprConsent.consentString);
+        utils.deepSetValue(request, 'user.ext.consent', firstBidRequest.gdprConsent.consentString);
       }
 
       // US Privacy (CCPA) support
-      if (bidRequests[0].uspConsent) {
-        utils.deepSetValue(request, 'regs.ext.us_privacy', bidRequests[0].uspConsent);
+      if (firstBidRequest.uspConsent) {
+        utils.deepSetValue(request, 'regs.ext.us_privacy', firstBidRequest.uspConsent);
       }
     }
 
@@ -658,10 +693,26 @@ const OPEN_RTB_PROTOCOL = {
             bidRequest.serverResponseTimeMs = serverResponseTimeMs;
           }
 
-          const extPrebidTargeting = utils.deepAccess(bid, 'ext.prebid.targeting');
+          // Look for seatbid[].bid[].ext.prebid.bidid and place it in the bidResponse object for use in analytics adapters as 'pbsBidId'
+          const bidId = utils.deepAccess(bid, 'ext.prebid.bidid');
+          if (typeof bidId === 'string' && !utils.isEmptyStr(bidId)) {
+            bidObject.pbsBidId = bidId;
+          }
+
+          // store wurl by auctionId and adId so it can be access from the BID_WON event handler
+          if (typeof bid.wurl === 'string' && !utils.isEmptyStr(bid.wurl)) {
+            addWurl(bidRequest.auctionId, bidObject.adId, bid.wurl);
+          }
+
+          let extPrebidTargeting = utils.deepAccess(bid, 'ext.prebid.targeting');
 
           // If ext.prebid.targeting exists, add it as a property value named 'adserverTargeting'
           if (extPrebidTargeting && typeof extPrebidTargeting === 'object') {
+            // If wurl exists, remove hb_winurl and hb_bidid targeting attributes
+            if (bid.wurl) {
+              extPrebidTargeting = utils.getDefinedParams(extPrebidTargeting, Object.keys(extPrebidTargeting)
+                .filter(i => (i.indexOf('hb_winurl') === -1 && i.indexOf('hb_bidid') === -1)));
+            }
             bidObject.adserverTargeting = extPrebidTargeting;
           }
 
@@ -774,6 +825,20 @@ const OPEN_RTB_PROTOCOL = {
 };
 
 /**
+ * BID_WON event to request the wurl
+ * @param {Bid} args the winning bid object
+ */
+function bidWonHandler(args) {
+  const wurl = getWurl(args.auctionId, args.adId);
+  if (typeof wurl === 'string' && !utils.isEmptyStr(wurl)) {
+    // can remove array item after calling the wurl
+    removeWurl(args.auctionId, args.adId);
+    utils.logMessage(`Invoking image pixel for wurl on BID_WIN: "${wurl}"`);
+    utils.triggerPixel(wurl);
+  }
+}
+
+/**
  * Bidder adapter for Prebid Server
  */
 export function PrebidServer() {
@@ -855,6 +920,9 @@ export function PrebidServer() {
     done();
     doClientSideSyncs(requestedBidders);
   }
+
+  // Listen for bid won to call wurl
+  events.on(EVENTS.BID_WON, bidWonHandler);
 
   return Object.assign(this, {
     callBids: baseAdapter.callBids,
