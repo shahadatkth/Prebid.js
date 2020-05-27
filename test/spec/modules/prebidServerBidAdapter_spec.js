@@ -254,7 +254,6 @@ const RESPONSE_OPENRTB = {
           'adm': '<script src="http://lax1-ib.adnxs.com/ab?e=wqT_3QKgB6CgAwAAAwDWAAUBCJ7kvtMFEPft7JnIuImSdBj87IDv8q21rXcqNgkAAAECCOA_EQEHNAAA4D8ZAAAAgOtR4D8hERIAKREJADERG6Aw8ub8BDi-B0C-B0gCUNbLkw5Y4YBIYABokUB48NIEgAEBigEDVVNEkgUG8FKYAawCoAH6AagBAbABALgBAsABA8gBAtABCdgBAOABAPABAIoCOnVmKCdhJywgNDk0NDcyLCAxNTE3MjY5NTM0KTt1ZigncicsIDI5NjgxMTEwLDIeAPCckgKBAiFqRHF3RUFpNjBJY0VFTmJMa3c0WUFDRGhnRWd3QURnQVFBUkl2Z2RROHViOEJGZ0FZUF9fX184UGFBQndBWGdCZ0FFQmlBRUJrQUVCbUFFQm9BRUJxQUVEc0FFQXVRRXBpNGlEQUFEZ1A4RUJLWXVJZ3dBQTREX0pBVkx3MU5mdl9lMF8yUUVBQUFBQUFBRHdQLUFCQVBVQgUPKEpnQ0FLQUNBTFVDBRAETDAJCPBUTUFDQWNnQ0FkQUNBZGdDQWVBQ0FPZ0NBUGdDQUlBREFaQURBSmdEQWFnRHV0Q0hCTG9ERVdSbFptRjFiSFFqVEVGWU1Ub3pPRFk1mgI5IS1ndndfUTYEAfCENFlCSUlBUW9BRG9SWkdWbVlYVnNkQ05NUVZneE9qTTROamsu2ALoB-ACx9MB6gJHaHR0cDovL3ByZWJpZC5sb2NhbGhvc3Q6OTk5OS9pbnRlZ3JhdGlvbkV4YW1wbGVzL2dwdC9hcHBuZXh1cy10ZXN0Lmh0bWzyAhAKBkFEVl9JRBIGNCXTHPICEQoGQ1BHARM4BzE5Nzc5MzPyAhAKBUNQBRPwljg1MTM1OTSAAwGIAwGQAwCYAxSgAwGqAwDAA6wCyAMA2AMA4AMA6AMA-AMDgAQAkgQJL29wZW5ydGIymAQAogQMMjE2LjU1LjQ3Ljk0qAQAsgQMCAAQABgAIAAwADgAuAQAwAQAyAQA0gQRZGVmYXVsdCNMQVgxOjM4NjnaBAIIAeAEAPAE1suTDogFAZgFAKAF______8BA7ABqgUkYzdkY2YxNGYtZjliYS00Yzc3LWEzYjQtMjdmNmRmMzkwNjdmwAUAyQVpLhTwP9IFCQkJDFAAANgFAeAFAfAFAfoFBAgAEACQBgA.&s=f4dc8b6fa65845d08f0a87c145e12cb7d6288c2a&referrer=http%3A%2F%2Fprebid.localhost%3A9999%2FintegrationExamples%2Fgpt%2Fappnexus-test.html&pp=${AUCTION_PRICE}"></script>',
           'adid': '29681110',
           'adomain': ['appnexus.com'],
-          'wurl': 'http://wurl.org?id=333',
           'iurl': 'http://lax1-ib.adnxs.com/cr?id=2968111',
           'cid': '958',
           'crid': '2968111',
@@ -262,7 +261,12 @@ const RESPONSE_OPENRTB = {
           'w': 300,
           'h': 250,
           'ext': {
-            'prebid': { 'type': 'banner' },
+            'prebid': {
+              'type': 'banner',
+              'event': {
+                'win': 'http://wurl.org?id=333'
+              }
+            },
             'bidder': {
               'appnexus': {
                 'brand_id': 1,
@@ -1782,7 +1786,9 @@ describe('S2S Adapter', function () {
       config.setConfig({ s2sConfig });
       const cacheResponse = utils.deepClone(RESPONSE_OPENRTB_VIDEO);
       cacheResponse.seatbid.forEach(item => {
-        item.bid[0].wurl = 'https://wurl.com?a=1&b=2';
+        item.bid[0].ext.prebid.event = {
+          win: 'https://wurl.com?a=1&b=2'
+        };
         item.bid[0].ext.prebid.targeting = {
           hb_uuid: 'a5ad3993',
           hb_cache_host: 'prebid-cache.net',
@@ -1805,7 +1811,9 @@ describe('S2S Adapter', function () {
       config.setConfig({ s2sConfig });
       const cacheResponse = utils.deepClone(RESPONSE_OPENRTB_VIDEO);
       cacheResponse.seatbid.forEach(item => {
-        item.bid[0].wurl = 'https://wurl.com?a=1&b=2';
+        item.bid[0].ext.prebid.event = {
+          win: 'https://wurl.com?a=1&b=2'
+        };
         item.bid[0].ext.prebid.targeting = {
           hb_uuid: 'a5ad3993',
           hb_cache_host: 'prebid-cache.net',
@@ -1903,8 +1911,9 @@ describe('S2S Adapter', function () {
       config.setConfig({ s2sConfig });
 
       const clonedResponse = utils.deepClone(RESPONSE_OPENRTB);
-      const bid = clonedResponse.seatbid[0].bid[0];
-      bid.wurl = 'https://wurl.org';
+      clonedResponse.seatbid[0].bid[0].ext.prebid.event = {
+        win: 'https://wurl.org'
+      };
       server.respondWith(JSON.stringify(clonedResponse));
       adapter.callBids(REQUEST, BID_REQUESTS, addBidResponse, done, ajax);
       server.respond();

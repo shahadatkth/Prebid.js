@@ -370,32 +370,37 @@ let nativeAssetCache = {}; // store processed native params to preserve
 /**
  * map wurl to auction id and adId for use in the BID_WON event
  */
-let wurlMap = {};
+const wurlMap = {};
 
 /**
- * @param {string} auctionId the id representing the auction
+ * @param {string} auctionId
  * @param {string} adId generated value set to bidObject.adId by bidderFactory Bid()
  * @param {string} wurl events.winurl passed from prebidServer as wurl
  */
 function addWurl(auctionId, adId, wurl) {
-  wurlMap[`${auctionId}${adId}`] = wurl;
+  if (![auctionId, adId].some(utils.isEmptyStr)) {
+    wurlMap[`${auctionId}${adId}`] = wurl;
+  }
 }
 
 /**
- * @param {string} auctionId the id representing the auction
+ * @param {string} auctionId
  * @param {string} adId generated value set to bidObject.adId by bidderFactory Bid()
- * @param {string} wurl events.winurl passed from prebidServer as wurl
  */
 function removeWurl(auctionId, adId) {
-  wurlMap[`${auctionId}${adId}`] = undefined;
+  if (![auctionId, adId].some(utils.isEmptyStr)) {
+    wurlMap[`${auctionId}${adId}`] = undefined;
+  }
 }
 /**
- * @param {string} auctionId the id representing the auction
+ * @param {string} auctionId
  * @param {string} adId generated value set to bidObject.adId by bidderFactory Bid()
  * @return {(string|undefined)} events.winurl which was passed as wurl
  */
 function getWurl(auctionId, adId) {
-  return wurlMap[`${auctionId}${adId}`];
+  if (![auctionId, adId].some(utils.isEmptyStr)) {
+    return wurlMap[`${auctionId}${adId}`];
+  }
 }
 
 const OPEN_RTB_PROTOCOL = {
@@ -548,7 +553,7 @@ const OPEN_RTB_PROTOCOL = {
        * @type {(string|undefined)}
        */
       const pbAdSlot = utils.deepAccess(adUnit, 'fpd.context.pbAdSlot');
-      if (typeof pbAdSlot === 'string' && !utils.isEmptyStr(pbAdSlot)) {
+      if (!utils.isEmptyStr(pbAdSlot)) {
         utils.deepSetValue(imp, 'ext.context.data.adslot', pbAdSlot);
       }
 
@@ -695,13 +700,13 @@ const OPEN_RTB_PROTOCOL = {
 
           // Look for seatbid[].bid[].ext.prebid.bidid and place it in the bidResponse object for use in analytics adapters as 'pbsBidId'
           const bidId = utils.deepAccess(bid, 'ext.prebid.bidid');
-          if (typeof bidId === 'string' && !utils.isEmptyStr(bidId)) {
+          if (!utils.isEmptyStr(bidId)) {
             bidObject.pbsBidId = bidId;
           }
 
           // store wurl by auctionId and adId so it can be access from the BID_WON event handler
-          if (typeof bid.wurl === 'string' && !utils.isEmptyStr(bid.wurl)) {
-            addWurl(bidRequest.auctionId, bidObject.adId, bid.wurl);
+          if (!utils.isEmptyStr(utils.deepAccess(bid, 'ext.prebid.event.win'))) {
+            addWurl(bidRequest.auctionId, bidObject.adId, utils.deepAccess(bid, 'ext.prebid.event.win'));
           }
 
           let extPrebidTargeting = utils.deepAccess(bid, 'ext.prebid.targeting');
@@ -709,7 +714,7 @@ const OPEN_RTB_PROTOCOL = {
           // If ext.prebid.targeting exists, add it as a property value named 'adserverTargeting'
           if (extPrebidTargeting && typeof extPrebidTargeting === 'object') {
             // If wurl exists, remove hb_winurl and hb_bidid targeting attributes
-            if (bid.wurl) {
+            if (!utils.isEmptyStr(utils.deepAccess(bid, 'ext.prebid.event.win'))) {
               extPrebidTargeting = utils.getDefinedParams(extPrebidTargeting, Object.keys(extPrebidTargeting)
                 .filter(i => (i.indexOf('hb_winurl') === -1 && i.indexOf('hb_bidid') === -1)));
             }
@@ -826,15 +831,16 @@ const OPEN_RTB_PROTOCOL = {
 
 /**
  * BID_WON event to request the wurl
- * @param {Bid} args the winning bid object
+ * @param {Bid} bid the winning bid object
  */
-function bidWonHandler(args) {
-  const wurl = getWurl(args.auctionId, args.adId);
-  if (typeof wurl === 'string' && !utils.isEmptyStr(wurl)) {
-    // can remove array item after calling the wurl
-    removeWurl(args.auctionId, args.adId);
+function bidWonHandler(bid) {
+  const wurl = getWurl(bid.auctionId, bid.adId);
+  if (!utils.isEmptyStr(wurl)) {
     utils.logMessage(`Invoking image pixel for wurl on BID_WIN: "${wurl}"`);
     utils.triggerPixel(wurl);
+
+    // remove from wurl cache, since the wurl url was called
+    removeWurl(bid.auctionId, bid.adId);
   }
 }
 
