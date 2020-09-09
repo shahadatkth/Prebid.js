@@ -103,6 +103,47 @@
     <script src="../../build/dev/prebid.js" async></script>
 
     <script>
+        let staticConfig = {
+          cmpApi: 'static',
+          timeout: 7500,
+          allowAuctionWithoutConsent: false,
+          consentData: {
+            getConsentData: {
+              'gdprApplies': false,
+              'hasGlobalScope': false,
+              'consentData': '1YYY'
+            },
+            getVendorConsents: {
+              'metadata': 'BOOgjO9OOgjO9APABAENAi-AAAAWd7_______9____7_9uz_Gv_r_ff_3nW0739P1A_r_Oz_rm_-zzV44_lpQQRCEA',
+              'gdprApplies': true,
+              'hasGlobalScope': false,
+              'isEU': true,
+              'cookieVersion': 1,
+              'created': '2018-05-29T07:45:48.522Z',
+              'lastUpdated': '2018-05-29T07:45:48.522Z',
+              'cmpId': 15,
+              'cmpVersion': 1,
+              'consentLanguage': 'EN',
+              'vendorListVersion': 34,
+              'maxVendorId': 359,
+              'purposeConsents': {
+                '1': true,
+                '2': true,
+                '3': true,
+                '4': true,
+                '5': true
+              },
+              'vendorConsents': {
+                '1': true,
+                '2': true,
+                '3': true,
+                '4': true,
+                '5': false
+              }
+            }
+          }
+        };
+        
         var googletag = googletag || {};
         googletag.cmd = googletag.cmd || [];
         googletag.cmd.push(function() {
@@ -112,22 +153,12 @@
         pbjs.que.push(function() {
             pbjs.setConfig({
                 debug: true,
-                consentManagement: {
-                    cmpApi: 'iab',
-                    timeout: 1000,
-                    defaultGdprScope: true
-                },
                 // consentManagement: {
-                //     cmpApi: 'static',
-                //     consentData: {
-                //         consentString: 'BOEFEAyOEFEAyAHABDENAI4AAAB9vABAASA'
-                //         vendorData: {
-                //             purposeConsents: {
-                //                 '1': true
-                //             }
-                //         }
-                //     }
+                //     cmpApi: 'iab',
+                //     timeout: 1000,
+                //     defaultGdprScope: true
                 // },
+                consentManagement: staticConfig,
                 userSync: {
                     userIds: [{
                         name: "unifiedId",
