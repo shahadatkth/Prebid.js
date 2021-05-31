@@ -13,6 +13,8 @@ const COOKIE_NAME = 'rpaSession';
 const LAST_SEEN_EXPIRE_TIME = 1800000; // 30 mins
 const END_EXPIRE_TIME = 21600000; // 6 hours
 
+const MODULE_INITIALIZED_TIME = utils.getPerformanceNow();
+
 const pbsErrorMap = {
   1: 'timeout-error',
   2: 'input-error',
@@ -302,10 +304,12 @@ function sendMessage(auctionId, bidWonId, trigger) {
       message.bidsWon = bidsWon;
     }
 
-    message.eventTiming = Math.round(utils.getPerformanceNow() - auctionCache.endTs);
+    message.timeAfterLoad = Math.round(utils.getPerformanceNow() - MODULE_INITIALIZED_TIME);
+    message.timeAfterAuctionEnd = Math.round(utils.getPerformanceNow() - auctionCache.endTs);
     auctionCache.sent = true;
   } else if (bidWonId && auctionCache && auctionCache.bids[bidWonId]) {
-    message.eventTiming = Math.round(utils.getPerformanceNow() - auctionCache.endTs);
+    message.timeAfterLoad = Math.round(utils.getPerformanceNow() - MODULE_INITIALIZED_TIME);
+    message.timeAfterAuctionEnd = Math.round(utils.getPerformanceNow() - auctionCache.endTs);
     message.bidsWon = [
       formatBidWon(auctionCache.bids[bidWonId])
     ];
