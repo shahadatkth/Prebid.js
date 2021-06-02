@@ -600,7 +600,7 @@ let rubiconAdapter = Object.assign({}, baseAdapter, {
           // mark adUnits we expect bidWon events for
           cache.auctions[args.auctionId].bidsWon[bid.adUnitCode] = false;
 
-          if (rubiConf.waitForGamSlots) {
+          if (rubiConf.waitForGamSlots && (!bid.mediaTypes.hasOwnProperty('video') || Object.keys(bid.mediaTypes).length !== 1)) {
             cache.auctions[args.auctionId].gamHasRendered[bid.adUnitCode] = false;
           }
 
