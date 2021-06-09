@@ -234,7 +234,8 @@ function sendMessage(auctionId, bidWonId, trigger) {
       clientTimeoutMillis: auctionCache.timeout,
       samplingFactor,
       accountId,
-      adUnits: Object.keys(adUnitMap).map(i => adUnitMap[i])
+      adUnits: Object.keys(adUnitMap).map(i => adUnitMap[i]),
+      requestId: auctionId
     };
 
     // pick our of top level floor data we want to send!
@@ -670,7 +671,7 @@ let rubiconAdapter = Object.assign({}, baseAdapter, {
               },
               'gam', () => {
                 if (utils.deepAccess(bid, 'ortb2Imp.ext.data.adserver.name') === 'gam') {
-                  return {adSlot: bid.ortb2Imp.ext.data.adserver.adSlot}
+                  return {adSlot: bid.ortb2Imp.ext.data.adserver.adslot}
                 }
               },
               'pbAdSlot', () => utils.deepAccess(bid, 'ortb2Imp.ext.data.pbadslot'),
